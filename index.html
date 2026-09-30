@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Реестр претензий по пене</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f2f4f8;--card:#fff;--ink:#0f172a;--mut:#64748b;--line:#e2e8f0;--pri:#1d4ed8;--pri-d:#1e3a8a;--red:#dc2626;--amber:#d97706;--green:#16a34a;--rad:10px}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:14px/1.45 "Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:14px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid #93c5fd;border-color:#60a5fa}
+input:disabled,select:disabled,textarea:disabled{background:#f8fafc;color:#475569}
+h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0}
+.mut{color:var(--mut)}.small{font-size:12px}
+.btn{border:1px solid #cbd5e1;background:#fff;color:var(--ink);padding:7px 14px;border-radius:7px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:#f1f5f9}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.btn.pri:hover{background:var(--pri-d)}
+.btn.danger{color:var(--red);border-color:#fecaca}.btn.danger:hover{background:#fef2f2}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.light{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35);color:#fff}.btn.light:hover{background:rgba(255,255,255,.22)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.x{border:0;background:none;color:var(--mut);font-size:18px;line-height:1;padding:4px 8px;border-radius:6px}.x:hover{background:#f1f5f9;color:var(--red)}
+/* header */
+header.top{background:linear-gradient(90deg,#0b2a5b,#1d4ed8);color:#fff;display:flex;align-items:center;gap:18px;padding:0 20px;position:sticky;top:0;z-index:30;flex-wrap:wrap}
+.brand{font-weight:700;font-size:16px;white-space:nowrap;display:flex;align-items:center;gap:8px;padding:14px 0}
+.brand i{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#fff;color:var(--pri);font-style:normal;font-size:15px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+nav.tabs button{background:none;border:0;color:#c7d7fb;padding:17px 12px 14px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs button:hover{color:#fff}
+nav.tabs button.on{color:#fff;border-bottom-color:#fff;font-weight:600}
+.user{display:flex;align-items:center;gap:10px;padding:8px 0}
+.me{background:none;border:0;color:#fff;text-align:right;display:flex;flex-direction:column;line-height:1.2;padding:4px 6px;border-radius:6px}
+.me:hover{background:rgba(255,255,255,.12)}.me small{color:#c7d7fb;font-size:12px}
+.bell-wrap{position:relative}
+.bell{background:none;border:0;color:#fff;position:relative;padding:6px;border-radius:6px;display:flex}.bell:hover{background:rgba(255,255,255,.12)}
+.badge{position:absolute;top:0;right:0;background:#ef4444;color:#fff;border-radius:999px;font-size:11px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px;font-weight:700}
+.badge:empty{display:none}
+.dd{position:absolute;right:0;top:44px;width:min(420px,92vw);background:#fff;color:var(--ink);border-radius:10px;box-shadow:0 12px 32px rgba(15,23,42,.25);max-height:70vh;overflow:auto;z-index:40}
+.dd-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.dd-i{padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
+.dd-i:hover{background:#f8fafc}.dd-i.unread{background:#eff6ff}.dd-i small{color:var(--mut);display:block}
+/* layout */
+.wrap{max-width:1600px;margin:0 auto;padding:16px 20px 40px}
+.card{background:var(--card);border-radius:var(--rad);box-shadow:0 1px 2px rgba(15,23,42,.06),0 0 0 1px rgba(15,23,42,.04);padding:14px 16px;margin-bottom:14px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.filters{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+.filters select{max-width:230px}
+.qbtns{display:flex;gap:4px;flex-wrap:wrap}
+.qbtns button{border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:6px 9px;font-size:13px}
+.qbtns button.on{background:#dbeafe;border-color:#93c5fd;color:var(--pri-d)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:#fff;border-radius:var(--rad);padding:12px 14px;border-left:4px solid var(--c,#1d4ed8);box-shadow:0 1px 2px rgba(15,23,42,.06),0 0 0 1px rgba(15,23,42,.04)}
+.kpi-t{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.02em}
+.kpi-v{font-size:22px;font-weight:700;margin:3px 0;font-variant-numeric:tabular-nums}
+.kpi-v small{font-size:14px;font-weight:600;color:#334155}
+.kpi-s{font-size:12.5px;color:#475569}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;margin-bottom:14px}
+.charts .card{margin:0}
+.chart-box{position:relative;height:290px}
+/* tables */
+.tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{background:#f8fafc;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600;color:#334155;position:sticky;top:0;z-index:1}
+.tbl th.s{cursor:pointer;user-select:none}.tbl th.s:hover{background:#eef2f7}
+.tbl td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+.tbl td.wrap{white-space:normal;min-width:180px}
+.tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:#eef4ff}
+.tbl tr.overdue td{background:#fef2f2}.tbl tr.lim td{background:#fffbeb}
+.tbl tfoot td{background:#f8fafc;font-weight:700;border-top:2px solid var(--line)}
+.tbl td input,.tbl td select{width:100%;padding:4px 6px;font-size:13px}
+.num{text-align:right!important;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 13%,#fff);white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#475569;margin-left:4px}
+.red{color:var(--red)}.amber{color:var(--amber)}.green{color:var(--green)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin-top:8px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;flex-wrap:wrap;font-size:13px}
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;z-index:50}
+.modal{background:#fff;border-radius:12px;width:min(640px,100%);box-shadow:0 24px 60px rgba(15,23,42,.35);display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
+.modal.xl{width:min(1200px,100%)}
+.modal-h,.modal-f,.ctabs{flex-shrink:0}
+.modal-h{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.modal-h h2{margin:0}
+.modal-b{padding:16px 20px;overflow:auto;flex:1}
+.modal-f{display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid var(--line);flex-wrap:wrap;background:#fafbfc;border-radius:0 0 12px 12px}
+.ctabs,.subtabs{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line);overflow-x:auto}
+.subtabs{padding:0;margin-bottom:14px}
+.ctabs button,.subtabs button{background:none;border:0;padding:10px 12px;border-bottom:2px solid transparent;color:#475569;white-space:nowrap}
+.ctabs button.on,.subtabs button.on{color:var(--pri);border-bottom-color:var(--pri);font-weight:600}
+.ctabs button:disabled{color:#cbd5e1;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px 14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}
+label.f i{color:var(--red);font-style:normal}
+label.f small{color:var(--mut);font-size:11.5px}
+.full{grid-column:1/-1}
+label.chk{display:flex;align-items:center;gap:8px;font-size:14px;align-self:end;padding-bottom:6px}
+label.chk input{width:16px;height:16px}
+.errs{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.errs ul{margin:4px 0 0;padding-left:18px}
+.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.sumbar{display:flex;gap:18px;flex-wrap:wrap;font-size:13px}
+.sumbar b{font-variant-numeric:tabular-nums}
+.box{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.box-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.total-big{font-size:20px;font-weight:700}
+.sec{margin:18px 0 8px;font-size:14px;font-weight:600;color:#334155}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#0b2a5b,#1d4ed8);padding:16px}
+.login-card{background:#fff;border-radius:14px;padding:28px;width:min(440px,100%);box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.login-card h1{font-size:20px;margin:0 0 4px}
+.note{font-size:12px;color:var(--mut);margin-top:14px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:#0f172a;color:#fff;padding:10px 16px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13.5px;max-width:90vw}
+.toast.err{background:#b91c1c}
+footer.foot{text-align:center;color:var(--mut);font-size:12px;padding:0 20px 24px}
+.steps{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.steps span{padding:4px 10px;border-radius:999px;background:#f1f5f9;font-size:12.5px;color:#475569}
+.steps span.on{background:#dbeafe;color:var(--pri-d);font-weight:600}
+@media(max-width:700px){
+ header.top{padding:0 12px;gap:6px}.brand{padding:10px 0 0}
+ nav.tabs{order:3;flex-basis:100%}
+ .user{margin-left:auto}.me small{display:none}
+ .wrap{padding:12px 16px 30px}
+ .filters label{flex:1 1 140px}.filters select,.filters input{max-width:none;width:100%}
+ .charts{grid-template-columns:1fr}
+ .modal-back{padding:0}.modal{max-height:100vh;border-radius:0}
+}
+@media print{header.top,.filters,.toolbar{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* =================== Константы и справочники =================== */
+const LS='pp_registry_v1', SS='pp_session_v1';
+const ROLES={executor:'Исполнитель',manager:'Руководитель',admin:'Администратор',observer:'Наблюдатель'};
+const PERMS={view:'Просмотр претензий, статистики, журнала',create:'Создание претензии',edit:'Редактирование претензий, оплат, суда, взыскания, файлов',reassign:'Смена исполнителя',delete:'Удаление и восстановление претензий',export:'Экспорт в Excel',import:'Импорт из Excel',admin:'Справочники, ставки, настройки уведомлений и интеграций'};
+const DEFAULT_PERMS={view:{executor:1,manager:1,admin:1,observer:1},create:{executor:1,manager:1,admin:1,observer:0},edit:{executor:1,manager:1,admin:1,observer:0},reassign:{executor:0,manager:1,admin:1,observer:0},delete:{executor:0,manager:1,admin:1,observer:0},export:{executor:1,manager:1,admin:1,observer:1},import:{executor:0,manager:1,admin:1,observer:0},admin:{executor:0,manager:0,admin:1,observer:0}};
+const PAY_ST={none:'Не оплачено',partial:'Частично оплачено',full:'Оплачено полностью'};
+const PAY_C={none:'#dc2626',partial:'#d97706',full:'#16a34a'};
+const RESULTS={pending:'На рассмотрении',satisfied_full:'Удовлетворена полностью',satisfied_partial:'Удовлетворена частично',rejected:'Не удовлетворена — отказано',withdrawn:'Не удовлетворена — иск отозван'};
+const ENF_ST={await:'Ожидает передачи ЧСИ',at_bailiff:'Не взыскано — у ЧСИ',partial:'Частично взыскано — остаток у ЧСИ',full:'Взыскано полностью (оплачено)'};
+const ENF_C={await:'#9333ea',at_bailiff:'#dc2626',partial:'#d97706',full:'#16a34a'};
+const STATUS={pretrial:{t:'На досудебной стадии',c:'#2563eb'},paid:{t:'Оплачено добровольно',c:'#16a34a'},court:{t:'В суде',c:'#7c3aed'},sat_collected:{t:'Удовлетворена в суде — взыскано',c:'#059669'},sat_partial:{t:'Удовлетворена в суде — частично взыскано',c:'#d97706'},sat_none:{t:'Удовлетворена в суде — не взыскано (у ЧСИ)',c:'#dc2626'},rejected:{t:'Не удовлетворена в суде',c:'#64748b'}};
+const STAGES={pretrial:'Досудебная',court:'Суд',enforcement:'Исполнение'};
+const METHODS={pct:'Процент в день от суммы просрочки',fixed:'Фиксированная сумма в день',fine:'Разовый штраф, % от обязательства',nbrk:'По базовой ставке НБ РК'};
+const DOC_TYPES=['Скан претензии','Расчёт пени','Платёжный документ','Исковое заявление','Решение суда','Исполнительный лист','Документы от ЧСИ','Прочее'];
+const FILE_EXT=['pdf','doc','docx','xls','xlsx','jpg','jpeg','png'];
+const ACTIONS={login:'Вход в систему',logout:'Выход из системы',create:'Создание',update:'Изменение',delete:'Удаление',restore:'Восстановление',file_add:'Загрузка файла',file_del:'Удаление файла',import:'Импорт',import_rollback:'Отмена импорта',notify:'Отправка уведомления',settings:'Справочники и настройки'};
+const EVENTS={
+ assigned:{t:'Назначена претензия / сменился исполнитель',to:'новому исполнителю',pl:''},
+ due_soon:{t:'Срок добровольной оплаты подходит',to:'исполнителю',pl:'за N дней'},
+ due_over:{t:'Срок оплаты истёк, остаток не оплачен, иск не подан',to:'исполнителю; копия начальнику отдела',pl:'в день истечения, затем каждые N дней'},
+ hearing:{t:'Судебное заседание',to:'исполнителю',pl:'за N дней (через запятую)'},
+ effective:{t:'Решение вступает в силу — получить исполнительный лист',to:'исполнителю',pl:'в дату вступления в силу'},
+ writ_not_transferred:{t:'Исполнительный лист не передан ЧСИ',to:'исполнителю',pl:'через N дней после вступления в силу'},
+ no_bailiff_payments:{t:'Нет поступлений у ЧСИ',to:'исполнителю; копия руководителям',pl:'каждые N дней, пока есть остаток'},
+ limitation:{t:'Приближается срок исковой давности',to:'исполнителю и руководителям',pl:'за N дней (через запятую)'},
+ stale:{t:'Претензия без движения',to:'исполнителю',pl:'N дней без изменений'},
+ summary:{t:'Сводка за неделю и за месяц',to:'руководителям',pl:'понедельник и 1-е число месяца'}
+};
+const CHANNELS={site:'На сайте',email:'E-mail',msg:'Мессенджер'};
+function defaultSettings(){return{
+ dueDays:10,limitationYears:3,dayRule:'next_incl',defaultMethod:'pct',defaultRate:0.1,defaultCapPct:10,
+ perms:JSON.parse(JSON.stringify(DEFAULT_PERMS)),
+ events:{assigned:{on:true,p:''},due_soon:{on:true,p:'3'},due_over:{on:true,p:'7'},hearing:{on:true,p:'3,1'},effective:{on:true,p:''},writ_not_transferred:{on:true,p:'10'},no_bailiff_payments:{on:true,p:'30'},limitation:{on:true,p:'60,30'},stale:{on:true,p:'30'},summary:{on:true,p:''}},
+ integrations:{ad:{url:'ldaps://dc.company.local:636',baseDN:'DC=company,DC=local',group:'GRP_Pretenzii_Peni',sso:'нет'},mail:{host:'smtp.company.local',port:'587',from:'pretenzii@company.local',enabled:false},messenger:{type:'Telegram',token:'',enabled:false}},
+ templates:{email:'{event}\nПретензия {reg}, контрагент {cp}, сумма {amount}, срок {date}.\nКарточка: {link}',msg:'{event}: {reg}, {cp}, {amount}. {link}'},
+ importMapping:null
+};}
+
+/* =================== Утилиты =================== */
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+function TODAY(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function toD(s){if(!s)return null;const[y,m,d]=s.slice(0,10).split('-').map(Number);return new Date(Date.UTC(y,m-1,d));}
+function toS(d){return d.toISOString().slice(0,10);}
+function addDays(s,n){const d=toD(s);d.setUTCDate(d.getUTCDate()+n);return toS(d);}
+function addYears(s,n){const d=toD(s);d.setUTCFullYear(d.getUTCFullYear()+n);return toS(d);}
+function days(a,b){return Math.round((toD(b)-toD(a))/86400000);}
+function lastDay(y,m){return toS(new Date(Date.UTC(y,m,0)));}
+function fmtD(s){if(!s)return '';const[y,m,d]=s.slice(0,10).split('-');return `${d}.${m}.${y}`;}
+function fmtDT(s){if(!s)return '';const d=new Date(s);if(isNaN(d))return fmtD(s);return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+const NF=new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const NI=new Intl.NumberFormat('ru-RU');
+const fmtN=n=>NF.format(+n||0), fmtM=n=>NF.format(+n||0)+' ₸', fmtI=n=>NI.format(+n||0);
+function fmtRate(n){return String(+n||0).replace('.',',');}
+function short(n){n=+n||0;const a=Math.abs(n);if(a>=1e9)return (n/1e9).toFixed(1).replace('.',',')+' млрд';if(a>=1e6)return (n/1e6).toFixed(1).replace('.',',')+' млн';if(a>=1e3)return (n/1e3).toFixed(0)+' тыс';return String(Math.round(n));}
+const r2=n=>Math.round((+n||0)*100)/100;
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+const sum=(a,f=x=>x)=>(a||[]).reduce((s,x)=>s+(+f(x)||0),0);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function parseNum(v){if(v==null||v==='')return null;if(typeof v==='number')return v;const n=parseFloat(String(v).replace(/\s| /g,'').replace(',','.'));return isNaN(n)?null:n;}
+function getP(o,p){return p.split('.').reduce((a,k)=>a==null?a:a[k],o);}
+function setP(o,p,v){const ks=p.split('.');let a=o;for(let i=0;i<ks.length-1;i++){if(a[ks[i]]==null)a[ks[i]]={};a=a[ks[i]];}a[ks[ks.length-1]]=v;}
+function opts(list,val,empty){return (empty!=null?`<option value="">${esc(empty)}</option>`:'')+list.map(([v,l])=>`<option value="${esc(v)}" ${String(v)===String(val??'')?'selected':''}>${esc(l)}</option>`).join('');}
+function pill(t,c){return `<span class="pill" style="--c:${c}">${esc(t)}</span>`;}
+function toast(msg,err){const el=document.createElement('div');el.className='toast'+(err?' err':'');el.textContent=msg;$('#toast').appendChild(el);setTimeout(()=>el.remove(),err?5000:3200);}
+function nowISO(){return new Date().toISOString();}
+
+/* =================== Хранилище =================== */
+let DB=null, ME=null, CARD=null, IMP=null, PROFILE=null, CHARTS=[];
+const UI={tab:'stats',f:{from:'',to:'',emp:'',status:'',pay:'',stage:'',result:'',enf:'',q:''},quick:'all',sort:{k:'date',d:-1},page:1,size:25,showDeleted:false,j:{sub:'audit',emp:'',from:'',to:'',action:'',q:''},s:'employees',bell:false};
+/* Если хранилище браузера недоступно (например, приватный режим), данные живут в памяти до закрытия вкладки */
+const MEM={};let STORAGE_OK=true;
+function stGet(store,k){try{return window[store].getItem(k);}catch(e){STORAGE_OK=false;return MEM[store+k]??null;}}
+function stSet(store,k,v){try{window[store].setItem(k,v);}catch(e){if(e&&e.name==='QuotaExceededError')throw e;STORAGE_OK=false;MEM[store+k]=v;}}
+function stDel(store,k){try{window[store].removeItem(k);}catch(e){delete MEM[store+k];}}
+function readDB(){try{const s=stGet('localStorage',LS);if(s)return migrate(JSON.parse(s));}catch(e){}return null;}
+function writeDB(){try{stSet('localStorage',LS,JSON.stringify(DB));return true;}catch(e){toast('Не удалось сохранить: переполнено хранилище браузера',true);return false;}}
+function tx(fn){const f=readDB();if(f)DB=f;try{fn(DB);}catch(e){DB=readDB()||DB;throw e;}writeDB();}
+function migrate(db){
+ const d=defaultSettings();db.settings=Object.assign(d,db.settings||{});
+ db.settings.perms=Object.assign(clone(DEFAULT_PERMS),db.settings.perms||{});
+ db.settings.events=Object.assign(d.events,db.settings.events||{});
+ ['employees','counterparties','contracts','claims','baseRates','audit','notifications','imports','notifKeys'].forEach(k=>{if(!Array.isArray(db[k]))db[k]=[];});
+ db.prefs=db.prefs||{};return db;
+}
+const IDB={db:null,
+ open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);const r=indexedDB.open('pp_files',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>{this.db=r.result;res(this.db);};r.onerror=()=>rej(r.error);});},
+ async put(k,v){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('files','readwrite');t.objectStore('files').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});},
+ async get(k){const db=await this.open();return new Promise((res,rej)=>{const r=db.transaction('files').objectStore('files').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
+ async clear(){const db=await this.open();return new Promise(res=>{const t=db.transaction('files','readwrite');t.objectStore('files').clear();t.oncomplete=()=>res();});}
+};
+
+/* =================== Сессия и права =================== */
+function getSession(){try{return JSON.parse(stGet('sessionStorage',SS)||'null');}catch(e){return null;}}
+function setSession(s){s?stSet('sessionStorage',SS,JSON.stringify(s)):stDel('sessionStorage',SS);}
+function refreshMe(){const s=getSession();ME=s?DB.employees.find(e=>e.id===s.empId&&e.active)||null:null;}
+function can(p){return !!(ME&&DB.settings.perms[p]&&DB.settings.perms[p][ME.role]);}
+function empName(id){if(id==='system')return 'Система';const e=DB.employees.find(x=>x.id===id);return e?e.name:'—';}
+function audit(action,o={}){
+ const a=o.system?{actor:'system',actorName:'Система'+(o.source?' ('+o.source+')':''),login:''}:{actor:ME?ME.id:'system',actorName:ME?ME.name:'Система',login:ME?ME.login:''};
+ DB.audit.push({id:uid(),ts:nowISO(),...a,action,claimId:o.claimId||null,reg:o.reg||'',field:o.field||'',old:o.old??'',new:o.new??'',note:o.note||''});
+}
+
+/* =================== Расчёты =================== */
+function baseRateAt(d){let r=0;DB.baseRates.slice().sort((a,b)=>a.from<b.from?-1:1).forEach(x=>{if(x.from<=d)r=+x.rate;});return r;}
+function calcLine(l,s,contractAmount){
+ const out={rows:[],raw:0,total:0,capped:false,cap:null};
+ const P=+l.principal||0, rate=+l.rate||0;
+ if(!P||!l.dueDate)return out;
+ if(l.method==='fine'){const a=r2(P*rate/100);out.rows.push({from:l.dueDate,to:l.dueDate,base:P,days:null,rate:fmtRate(rate)+' % разово',amount:a});out.raw=a;}
+ else{
+  if(!l.endDate)return out;
+  const start=addDays(l.dueDate,1);let end=l.endDate;if(s.dayRule==='next_excl')end=addDays(end,-1);
+  if(end<start)return out;
+  let base=P;const cuts=new Map();
+  (l.partials||[]).filter(p=>p.date&&+p.amount>0).sort((a,b)=>a.date<b.date?-1:1).forEach(p=>{
+   if(p.date<start)base-=+p.amount;else if(p.date<end){const d=addDays(p.date,1);cuts.set(d,(cuts.get(d)||0)+(+p.amount));}
+  });
+  if(l.method==='nbrk')DB.baseRates.forEach(r=>{if(r.from>start&&r.from<=end&&!cuts.has(r.from))cuts.set(r.from,0);});
+  const dates=[...cuts.keys()].sort();let ss=start;const segs=[];
+  dates.forEach(d=>{segs.push([ss,addDays(d,-1)]);ss=d;});segs.push([ss,end]);
+  segs.forEach(([a,b],i)=>{
+   if(i>0)base-=cuts.get(a)||0;
+   if(base<=0.004)return;const n=days(a,b)+1;if(n<=0)return;let amt,rl;
+   if(l.method==='pct'){amt=base*rate/100*n;rl=fmtRate(rate)+' % в день';}
+   else if(l.method==='fixed'){amt=rate*n;rl=fmtN(rate)+' ₸ в день';}
+   else{const br=baseRateAt(a);amt=base*br/100*n/365;rl=fmtRate(br)+' % годовых';}
+   amt=r2(amt);out.rows.push({from:a,to:b,base:r2(base),days:n,rate:rl,amount:amt});out.raw+=amt;
+  });
+ }
+ out.raw=r2(out.raw);out.total=out.raw;
+ const cp=+l.capPct||0;
+ if(cp>0){const cb=l.capBase==='contract'&&+contractAmount>0?+contractAmount:P;out.cap=r2(cb*cp/100);if(out.raw>out.cap){out.total=out.cap;out.capped=true;}}
+ return out;
+}
+function computeCalc(calc,contractAmount){
+ const res={lines:[],total:0};
+ (calc&&calc.lines||[]).forEach(ln=>{const l=calc.asOf&&ln.method!=='fine'?{...ln,endDate:calc.asOf}:ln;const r=calcLine(l,DB.settings,contractAmount);res.lines.push(r);res.total+=r.total;});
+ res.total=r2(res.total);return res;
+}
+function met(c){
+ const pen=+c.penalty||0, paid=r2(sum(c.payments,p=>p.amount)), rest=r2(pen-paid);
+ const pay=paid<=0?'none':paid<pen?'partial':'full';
+ const ct=c.court||{}, filed=!!ct.filed, result=filed?(ct.result||'pending'):null;
+ const sat=filed&&(result==='satisfied_full'||result==='satisfied_partial');
+ const awarded=sat?(+ct.awarded||0):0;
+ const collected=sat?r2(sum(c.enf&&c.enf.payments,p=>p.amount)):0;
+ const enfRest=sat?r2(Math.max(0,awarded-collected)):0;
+ let enf=null;if(sat)enf=awarded>0&&collected>=awarded?'full':collected>0?'partial':(c.enf&&c.enf.transferDate)?'at_bailiff':'await';
+ let st;if(!filed)st=pay==='full'?'paid':'pretrial';else if(result==='pending')st='court';else if(sat)st=enf==='full'?'sat_collected':enf==='partial'?'sat_partial':'sat_none';else st='rejected';
+ const stage=!filed?'pretrial':sat?'enforcement':'court';
+ const t=TODAY();
+ const overdue=!filed&&rest>0&&!!c.due&&c.due<t;
+ const limDate=c.to?addYears(c.to,+DB.settings.limitationYears||3):null;
+ const limSoon=!filed&&rest>0&&!!limDate&&days(t,limDate)<=60;
+ const dl=[];
+ if(!filed&&rest>0&&c.due)dl.push([c.due,'срок оплаты']);
+ if(filed&&result==='pending'&&ct.hearing)dl.push([ct.hearing.slice(0,10),'заседание']);
+ if(sat&&ct.effectiveDate&&!(c.enf&&c.enf.transferDate))dl.push([addDays(ct.effectiveDate,+DB.settings.events.writ_not_transferred.p||10),'передать ЧСИ']);
+ if(!filed&&rest>0&&limDate)dl.push([limDate,'исковая давность']);
+ dl.sort((a,b)=>a[0]<b[0]?-1:1);
+ return{pen,paid,rest,pay,filed,result,sat,awarded,collected,enfRest,enf,st,stage,overdue,limDate,limSoon,next:dl[0]||null,claimAmount:filed?(+ct.amount||0):0,fee:filed?(+ct.fee||0):0};
+}
+function nextReg(db,date){const y=(date||TODAY()).slice(0,4);let mx=0;db.claims.forEach(c=>{const m=/^П-(\d{4})-(\d+)$/.exec(c.reg||'');if(m&&m[1]===y)mx=Math.max(mx,+m[2]);});return `П-${y}-${String(mx+1).padStart(4,'0')}`;}
+function blankClaim(){
+ const t=TODAY();
+ return{id:uid(),reg:nextReg(DB,t),date:t,emp:ME&&ME.active?ME.id:'',cpId:null,cpName:'',bin:'',contractId:null,contractNo:'',contractDate:'',contractAmount:null,from:'',to:'',basis:'',penalty:null,penaltyManual:false,manualReason:'',due:addDays(t,+DB.settings.dueDays||10),note:'',
+  calc:null,payments:[],court:{filed:false,filedDate:'',court:'',caseNo:'',amount:null,fee:null,hearing:'',result:'pending',decisionDate:'',effectiveDate:'',awarded:null,note:''},
+  enf:{writNo:'',writDate:'',bailiff:'',transferDate:'',procNo:'',note:'',payments:[]},files:[],deleted:false,importId:null,createdAt:null,createdBy:null,updatedAt:null,updatedBy:null,version:0};
+}
+
+/* =================== Уведомления =================== */
+function heads(){return DB.employees.filter(e=>e.active&&/^начальник отдела/i.test(e.position)).map(e=>e.id);}
+function managers(){return DB.employees.filter(e=>e.active&&(e.role==='manager'||e.role==='admin')).map(e=>e.id);}
+function dispatch(ev,c,to,extra){
+ const S=DB.settings, tpl=S.templates;
+ const vars={event:EVENTS[ev].t+(extra?' — '+extra:''),reg:c?c.reg:'',cp:c?c.cpName:'',amount:c?fmtM(c.penalty):'',date:c?fmtD(c.due):'',link:c?location.href.split('#')[0]+'#claim='+c.id:location.href.split('#')[0]};
+ const fill=s=>String(s).replace(/\{(\w+)\}/g,(m,k)=>vars[k]??'');
+ to.forEach(eid=>{
+  const e=DB.employees.find(x=>x.id===eid);if(!e||!e.active)return;
+  const pr=(DB.prefs[eid]&&DB.prefs[eid][ev])||{site:true,email:true,msg:true};
+  Object.keys(CHANNELS).forEach(ch=>{
+   if(!pr[ch])return;let status='доставлено';
+   if(ch==='email')status=S.integrations.mail.enabled?'отправлено (демо)':'ошибка: почтовый сервер не настроен — повтор в очереди';
+   if(ch==='msg')status=!e.messengerId?'ошибка: мессенджер не привязан':S.integrations.messenger.enabled?'отправлено (демо)':'ошибка: бот не настроен — повтор в очереди';
+   DB.notifications.push({id:uid(),ts:nowISO(),emp:eid,claimId:c?c.id:null,reg:c?c.reg:'',event:ev,channel:ch,text:ch==='email'?fill(tpl.email):fill(tpl.msg),status,read:ch!=='site'});
+  });
+ });
+ audit('notify',{system:true,source:'планировщик уведомлений',claimId:c?c.id:null,reg:c?c.reg:'',note:`${EVENTS[ev].t}${extra?' — '+extra:''} → ${to.map(empName).join(', ')}`});
+}
+function runNotifications(){
+ const f=readDB();if(f)DB=f;if(!DB)return 0;
+ const t=TODAY(),E=DB.settings.events,keys=new Set(DB.notifKeys);let n=0;
+ const P=k=>String(E[k]&&E[k].p||'').split(/[,;\s]+/).map(Number).filter(x=>x>0);
+ const emit=(key,ev,c,to,extra)=>{if(!E[ev]||!E[ev].on||keys.has(key))return;keys.add(key);dispatch(ev,c,[...new Set(to.filter(Boolean))],extra);n++;};
+ const H=heads(),MG=managers();
+ DB.claims.filter(c=>!c.deleted).forEach(c=>{
+  const m=met(c),ct=c.court||{};
+  if(!m.filed&&m.rest>0&&c.due){
+   const d=days(t,c.due),N=P('due_soon')[0]||3;
+   if(d>=1&&d<=N)emit(`due_soon|${c.id}|${c.due}`,'due_soon',c,[c.emp],`срок ${fmtD(c.due)}`);
+   if(d<=0){const rep=P('due_over')[0]||7;emit(`due_over|${c.id}|${c.due}|${Math.floor(-d/rep)}`,'due_over',c,[c.emp,...H],`срок истёк ${fmtD(c.due)}, остаток ${fmtM(m.rest)}`);}
+  }
+  if(m.filed&&m.result==='pending'&&ct.hearing){
+   const hd=ct.hearing.slice(0,10),d=days(t,hd),nn=P('hearing').sort((a,b)=>a-b).find(x=>d>=0&&d<=x);
+   if(nn!=null)emit(`hearing|${c.id}|${hd}|${nn}`,'hearing',c,[c.emp],`заседание ${fmtDT(ct.hearing)}`);
+  }
+  if(m.sat&&ct.effectiveDate&&t>=ct.effectiveDate){
+   if(!(c.enf&&c.enf.writNo))emit(`effective|${c.id}|${ct.effectiveDate}`,'effective',c,[c.emp],`вступило в силу ${fmtD(ct.effectiveDate)}`);
+   const N=P('writ_not_transferred')[0]||10;
+   if(!(c.enf&&c.enf.transferDate)&&days(ct.effectiveDate,t)>=N)emit(`writ|${c.id}|${ct.effectiveDate}`,'writ_not_transferred',c,[c.emp],`решение в силе с ${fmtD(ct.effectiveDate)}`);
+  }
+  if(m.sat&&c.enf&&c.enf.transferDate&&m.enfRest>0){
+   const last=[c.enf.transferDate,...(c.enf.payments||[]).map(p=>p.date).filter(Boolean)].sort().pop(),dd=days(last,t),N=P('no_bailiff_payments')[0]||30;
+   if(dd>=N)emit(`nbp|${c.id}|${last}|${Math.floor(dd/N)}`,'no_bailiff_payments',c,[c.emp,...MG],`остаток у ЧСИ ${fmtM(m.enfRest)}`);
+  }
+  if(m.limDate&&!m.filed&&m.rest>0){
+   const d=days(t,m.limDate),nn=P('limitation').sort((a,b)=>a-b).find(x=>d>=0&&d<=x);
+   if(nn!=null)emit(`lim|${c.id}|${m.limDate}|${nn}`,'limitation',c,[c.emp,...MG],`истекает ${fmtD(m.limDate)}`);
+  }
+  if(['pretrial','court','sat_partial','sat_none'].includes(m.st)&&c.updatedAt){
+   const N=P('stale')[0]||30,dd=days(c.updatedAt.slice(0,10),t);
+   if(dd>=N)emit(`stale|${c.id}|${c.updatedAt.slice(0,10)}`,'stale',c,[c.emp],`нет изменений ${dd} дн.`);
+  }
+ });
+ const wd=toD(t).getUTCDay();
+ const L=DB.claims.filter(c=>!c.deleted),ms=L.map(met);
+ const brief=`претензий ${L.length}, предъявлено ${fmtM(sum(ms,m=>m.pen))}, оплачено ${fmtM(sum(ms,m=>m.paid))}, у ЧСИ ${fmtM(sum(ms,m=>m.enfRest))}`;
+ if(wd===1)emit(`summary|w|${t}`,'summary',null,MG,'неделя: '+brief);
+ if(t.slice(8)==='01')emit(`summary|m|${t}`,'summary',null,MG,'месяц: '+brief);
+ if(n){DB.notifKeys=[...keys].slice(-20000);if(DB.notifications.length>5000)DB.notifications=DB.notifications.slice(-5000);writeDB();}
+ return n;
+}
+
+/* =================== Демо-данные =================== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function seed(){
+ const R=mulberry32(20260930),ri=(a,b)=>a+Math.floor(R()*(b-a+1)),pick=a=>a[Math.floor(R()*a.length)];
+ const t=TODAY();
+ const db=migrate({});
+ const positions=['Директор управления','Начальник отдела','Заместитель начальника отдела','Главный специалист','Ведущий специалист','Ведущий специалист','Специалист','Специалист'];
+ const roles=['manager','admin','manager','executor','executor','executor','executor','executor'];
+ db.employees=positions.map((p,i)=>({id:'e'+(i+1),name:'Сотрудник '+(i+1),position:p,login:'user'+(i+1),email:`user${i+1}@company.local`,role:roles[i],active:true,messengerId:''}));
+ const cpNames=['ТОО «Альфа Строй Групп»','ТОО «Нур Логистик»','АО «Степь Энерго»','ТОО «Каспий Снаб»','ТОО «Алатау Инжиниринг»','ТОО «Сарыарка Трейд»','ТОО «Батыс Пром»','ТОО «Есиль Техно»','АО «Тараз Металл»','ТОО «Шымкент Пласт»','ТОО «Ертіс Сервис»','ТОО «Жетысу Агро»'];
+ db.counterparties=cpNames.map((n,i)=>{let b=String(ri(1,9));for(let k=0;k<11;k++)b+=ri(0,9);return{id:'cp'+(i+1),name:n,bin:b};});
+ let k=0;db.counterparties.forEach(cp=>{const n=ri(1,2);for(let j=0;j<n;j++){k++;const y=pick([2023,2024,2025]);db.contracts.push({id:'ct'+k,cpId:cp.id,number:`${ri(10,999)}-${pick(['П','У','ПД','СМР','ТО'])}/${y}`,date:`${y}-${pad(ri(1,12))}-${pad(ri(1,28))}`,amount:ri(8,180)*1e6,method:'pct',rate:pick([0.1,0.1,0.05,0.2]),capPct:pick([10,10,5,0])});}});
+ db.baseRates=[{id:'r1',from:'2024-01-01',rate:15.75},{id:'r2',from:'2024-03-01',rate:14.75},{id:'r3',from:'2024-07-12',rate:14.5},{id:'r4',from:'2024-08-30',rate:14.25},{id:'r5',from:'2024-10-11',rate:15.25},{id:'r6',from:'2025-03-10',rate:16.5},{id:'r7',from:'2025-10-10',rate:18}];
+ DB=db;
+ const courts=['СМЭС г. Астаны','СМЭС г. Алматы','СМЭС Карагандинской области','СМЭС г. Шымкент','СМЭС Павлодарской области'];
+ const empW=['e2','e3','e4','e4','e5','e5','e6','e6','e7','e7','e8','e8'];
+ const list=[];
+ for(let i=0;i<38;i++){
+  const back=ri(3,620),date=addDays(t,-back),emp=pick(empW),cp=pick(db.counterparties),cts=db.contracts.filter(x=>x.cpId===cp.id),ct=pick(cts);
+  const principal=Math.round(ct.amount*(0.08+R()*0.4)/1000)*1000;
+  const dueDate=addDays(date,-ri(40,210));let endDate=addDays(date,-ri(3,20));if(endDate<=addDays(dueDate,5))endDate=addDays(dueDate,20);
+  const line={id:uid(),principal,dueDate,endDate,method:ct.method,rate:ct.rate,capPct:ct.capPct,capBase:'obligation',partials:[]};
+  if(R()<0.25){line.partials.push({id:uid(),date:addDays(dueDate,ri(5,Math.max(6,days(dueDate,endDate)-3))),amount:Math.round(principal*0.4/1000)*1000});}
+  const penalty=calcLine(line,db.settings,ct.amount).total;
+  let sc;
+  if(back<45)sc=pick(['none','none','partial','paid']);
+  else if(back<150)sc=pick(['none','partial','paid','paid','court']);
+  else sc=pick(['none','partial','paid','paid','court','court','sat_coll','sat_coll','sat_part','sat_bail','sat_await','rejected','withdrawn','sat_coll','paid']);
+  const c={...blankClaim(),id:'c'+(i+1),date,emp,cpId:cp.id,cpName:cp.name,bin:cp.bin,contractId:ct.id,contractNo:ct.number,contractDate:ct.date,contractAmount:ct.amount,from:addDays(dueDate,1),to:endDate,basis:pick(['Просрочка поставки товара','Просрочка выполнения работ','Нарушение сроков оказания услуг','Просрочка оплаты по договору','Нарушение графика СМР']),penalty,due:addDays(date,+db.settings.dueDays),calc:{lines:[line],asOf:'',total:penalty,savedAt:date+'T10:00:00'}};
+  const clampT=d=>d>t?t:d;let lastAct=date;
+  const pays=(total,from,to,cnt,src)=>{const res=[];let left=r2(total);for(let q=0;q<cnt;q++){const amt=q===cnt-1?left:r2(Math.round(total/cnt*(0.7+R()*0.5)/100)*100);left=r2(left-amt);const span=Math.max(1,days(from,to));const d=clampT(addDays(from,ri(0,span)));res.push({id:uid(),date:d,amount:amt,doc:'ПП № '+ri(100,9999),note:'',source:src||'вручную'});if(d>lastAct)lastAct=d;}return res.sort((a,b)=>a.date<b.date?-1:1);};
+  if(sc==='partial')c.payments=pays(r2(penalty*(0.3+R()*0.4)),addDays(date,2),clampT(addDays(date,40)),ri(1,2));
+  if(sc==='paid')c.payments=pays(penalty,addDays(date,2),clampT(addDays(date,25)),ri(1,2));
+  if(['court','sat_coll','sat_part','sat_bail','sat_await','rejected','withdrawn'].includes(sc)){
+   if(R()<0.25)c.payments=pays(r2(penalty*0.2),addDays(date,3),addDays(date,15),1);
+   const filed=clampT(addDays(date,ri(25,45))),amount=r2(penalty-sum(c.payments,p=>p.amount));
+   c.court={...c.court,filed:true,filedDate:filed,court:pick(courts),caseNo:`7194-${filed.slice(2,4)}-00-2/${ri(100,9999)}`,amount,fee:r2(amount*0.03),result:'pending'};lastAct=filed;
+   if(sc==='court'){c.court.hearing=addDays(t,ri(1,35))+'T'+pick(['10:00','11:30','15:00']);}
+   else{
+    let dec=addDays(filed,ri(35,70));if(sc==='sat_await')dec=addDays(t,-ri(40,45));if(dec>addDays(t,-3))dec=addDays(t,-3);
+    c.court.decisionDate=dec;c.court.effectiveDate=addDays(dec,30)>t?'':addDays(dec,30);lastAct=dec;
+    if(sc==='rejected')c.court.result='rejected';else if(sc==='withdrawn')c.court.result='withdrawn';
+    else{
+     const full=R()<0.6;c.court.result=full?'satisfied_full':'satisfied_partial';c.court.awarded=full?amount:r2(amount*(0.5+R()*0.35));
+     const eff=c.court.effectiveDate||dec;
+     c.enf={...c.enf,writNo:'ИЛ № '+ri(1000,99999),writDate:clampT(addDays(eff,ri(3,10))),bailiff:'ЧСИ исполнительного округа № '+ri(1,40),procNo:''};
+     if(sc!=='sat_await'){c.enf.transferDate=clampT(addDays(eff,ri(10,20)));c.enf.procNo='ИП-'+ri(10000,99999);lastAct=c.enf.transferDate;}
+     else{c.enf.writNo='';c.enf.writDate='';c.enf.bailiff='';}
+     if(sc==='sat_coll')c.enf.payments=pays(c.court.awarded,addDays(c.enf.transferDate,10),clampT(addDays(c.enf.transferDate,90)),ri(1,3),'вручную');
+     if(sc==='sat_part')c.enf.payments=pays(r2(c.court.awarded*(0.25+R()*0.35)),addDays(c.enf.transferDate,10),clampT(addDays(c.enf.transferDate,60)),1,'вручную');
+    }
+   }
+  }
+  c.createdAt=date+'T10:'+pad(ri(0,59))+':00';c.createdBy=emp;c.updatedAt=(lastAct>date?lastAct:date)+'T15:'+pad(ri(0,59))+':00';c.updatedBy=emp;c.version=1;
+  list.push(c);
+ }
+ list.sort((a,b)=>a.date<b.date?-1:1);
+ const seq={};list.forEach(c=>{const y=c.date.slice(0,4);seq[y]=(seq[y]||0)+1;c.reg=`П-${y}-${String(seq[y]).padStart(4,'0')}`;});
+ db.claims=list;
+ list.forEach(c=>{
+  db.audit.push({id:uid(),ts:c.createdAt,actor:c.emp,actorName:empName(c.emp),login:'user'+c.emp.slice(1),action:'create',claimId:c.id,reg:c.reg,field:'',old:'',new:'',note:`Создана претензия ${c.reg}`});
+  c.payments.forEach(p=>db.audit.push({id:uid(),ts:p.date+'T12:00:00',actor:c.emp,actorName:empName(c.emp),login:'user'+c.emp.slice(1),action:'update',claimId:c.id,reg:c.reg,field:'Оплата добавлена',old:'',new:`${fmtD(p.date)} · ${fmtN(p.amount)}`,note:''}));
+ });
+ db.audit.sort((a,b)=>a.ts<b.ts?-1:1);
+ return db;
+}
+
+/* =================== Рендер: каркас =================== */
+function render(){
+ const app=$('#app');refreshMe();
+ CHARTS.forEach(c=>c.destroy());CHARTS=[];
+ if(!ME){app.innerHTML=loginHTML();return;}
+ const tabs=[['stats','Статистика','view'],['registry','Реестр','view'],['journal','Журнал изменений','view'],['import','Импорт','import'],['settings','Справочники и настройки','admin']].filter(t=>can(t[2]));
+ if(!tabs.find(t=>t[0]===UI.tab))UI.tab=tabs[0]?tabs[0][0]:'stats';
+ app.innerHTML=`<header class="top">
+  <div class="brand"><i>₸</i>Реестр претензий по пене</div>
+  <nav class="tabs">${tabs.map(t=>`<button class="${UI.tab===t[0]?'on':''}" data-a="tab" data-t="${t[0]}">${t[1]}</button>`).join('')}</nav>
+  <div class="user">
+   <div class="bell-wrap"><button class="bell" data-a="bell" title="Уведомления"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge" id="bell-n"></span></button><div id="bell-dd"></div></div>
+   <button class="me" data-a="profile" title="Профиль"><b>${esc(ME.name)}</b><small>${esc(ME.position)} · ${ROLES[ME.role]}</small></button>
+   <button class="btn sm light" data-a="logout">Выйти</button>
+  </div></header>
+  <div class="wrap">${['stats','registry'].includes(UI.tab)?filtersHTML():''}<div id="content"></div></div>
+  ${STORAGE_OK?'':'<div class="wrap" style="padding-top:0"><div class="warn">Хранилище браузера недоступно — данные сохраняются только до закрытия вкладки. Откройте файл index.html напрямую в Chrome/Edge.</div></div>'}
+  <footer class="foot">Демо-версия по PRD v1.2 · данные хранятся в этом браузере · вход AD, почта и мессенджер имитируются</footer>`;
+ renderContent();updateBell();
+}
+function renderContent(){
+ CHARTS.forEach(c=>c.destroy());CHARTS=[];
+ const el=$('#content');if(!el)return;
+ ({stats:renderStats,registry:renderRegistry,journal:renderJournal,import:renderImport,settings:renderSettings})[UI.tab](el);
+}
+function loginHTML(){
+ const emps=DB.employees.filter(e=>e.active);
+ return `<div class="login"><div class="login-card">
+  <h1>Реестр претензий по пене</h1><p class="mut">Вход под корпоративной учётной записью (Active Directory)</p>
+  <label class="f" style="margin-top:14px"><span>Сотрудник (логин AD)</span><select id="login-emp">${emps.map(e=>`<option value="${e.id}">${esc(e.name)} — ${esc(e.login)} · ${ROLES[e.role]}</option>`).join('')}</select></label>
+  <button class="btn pri" data-a="login" style="width:100%;margin-top:16px;justify-content:center">Войти</button>
+  <p class="note">Демо-версия: проверка пароля в AD не выполняется, выберите сотрудника. Доступ — группа AD «${esc(DB.settings.integrations.ad.group)}». Сессия — 8 часов, завершается после 30 минут бездействия.</p>
+ </div></div>`;
+}
+function filtersHTML(){
+ const f=UI.f,emps=DB.employees.map(e=>[e.id,e.name+(e.active?'':' (неактивен)')]);
+ const q=[['month','Текущий месяц'],['quarter','Квартал'],['year','Год'],['all','Всё время']];
+ return `<div class="card filters">
+  <label>Дата претензии с<input type="date" data-f="from" value="${f.from}"></label>
+  <label>по<input type="date" data-f="to" value="${f.to}"></label>
+  <div class="qbtns">${q.map(x=>`<button class="${UI.quick===x[0]?'on':''}" data-a="quick" data-q="${x[0]}">${x[1]}</button>`).join('')}</div>
+  <label>Исполнитель<select data-f="emp">${opts(emps,f.emp,'Все')}</select></label>
+  <label>Статус претензии<select data-f="status">${opts(Object.entries(STATUS).map(([k,v])=>[k,v.t]),f.status,'Все')}</select></label>
+  <label>Статус оплаты<select data-f="pay">${opts(Object.entries(PAY_ST),f.pay,'Все')}</select></label>
+  <label>Стадия<select data-f="stage">${opts(Object.entries(STAGES),f.stage,'Все')}</select></label>
+  <label>Решение суда<select data-f="result">${opts(Object.entries(RESULTS),f.result,'Все')}</select></label>
+  <label>Статус взыскания<select data-f="enf">${opts(Object.entries(ENF_ST),f.enf,'Все')}</select></label>
+  <label style="flex:1;min-width:200px">Поиск<input type="search" data-f="q" value="${esc(f.q)}" placeholder="Контрагент, БИН, № договора, № претензии, № дела"></label>
+  <button class="btn sm" data-a="resetF">Сбросить</button>
+ </div>`;
+}
+function filtered(){
+ const f=UI.f,q=f.q.trim().toLowerCase();
+ return DB.claims.filter(c=>{
+  if(c.deleted)return false;if(f.from&&c.date<f.from)return false;if(f.to&&c.date>f.to)return false;if(f.emp&&c.emp!==f.emp)return false;
+  if(f.status||f.pay||f.stage||f.result||f.enf){const m=met(c);if(f.status&&m.st!==f.status)return false;if(f.pay&&m.pay!==f.pay)return false;if(f.stage&&m.stage!==f.stage)return false;if(f.result&&m.result!==f.result)return false;if(f.enf&&m.enf!==f.enf)return false;}
+  if(q&&![c.reg,c.cpName,c.bin,c.contractNo,c.court&&c.court.caseNo].join(' ').toLowerCase().includes(q))return false;
+  return true;
+ });
+}
+function periodLabel(list){
+ let a=UI.f.from,b=UI.f.to;
+ if(!a||!b){const ds=(list||DB.claims).map(c=>c.date).filter(Boolean).sort();a=a||ds[0]||TODAY();b=b||ds[ds.length-1]||TODAY();}
+ return fmtD(a)+'-'+fmtD(b);
+}
+
+/* =================== Статистика =================== */
+function renderStats(el){
+ const L=filtered(),M=L.map(c=>({c,m:met(c)})),g=fn=>M.filter(x=>fn(x.m));
+ const tot=sum(M,x=>x.m.pen),paid=sum(M,x=>x.m.paid);
+ const full=g(m=>m.pay==='full'),part=g(m=>m.pay==='partial'),none=g(m=>m.pay==='none');
+ const filed=g(m=>m.filed),pend=g(m=>m.result==='pending'),sat=g(m=>m.sat),satF=g(m=>m.result==='satisfied_full'),satP=g(m=>m.result==='satisfied_partial');
+ const rej=g(m=>m.result==='rejected'),wd=g(m=>m.result==='withdrawn'),coll=g(m=>m.collected>0),atB=g(m=>m.sat&&m.enfRest>0);
+ const ovd=g(m=>m.overdue),lim=g(m=>m.limSoon);
+ const K=(t,v,s,c)=>`<div class="kpi" style="--c:${c}"><div class="kpi-t">${t}</div><div class="kpi-v">${v}</div><div class="kpi-s">${s}</div></div>`;
+ const cnt=n=>`${fmtI(n)} <small>шт.</small>`;
+ el.innerHTML=`<div class="kpis">
+  ${K('Претензий предъявлено',cnt(M.length),`на сумму <b>${fmtM(tot)}</b>`,'#1d4ed8')}
+  ${K('Оплачено полностью',cnt(full.length),`оплачено <b>${fmtM(sum(full,x=>x.m.paid))}</b>`,'#16a34a')}
+  ${K('Оплачено частично',cnt(part.length),`оплачено <b>${fmtM(sum(part,x=>x.m.paid))}</b><br>остаток <b>${fmtM(sum(part,x=>x.m.rest))}</b>`,'#d97706')}
+  ${K('Не оплачено',cnt(none.length),`на сумму <b>${fmtM(sum(none,x=>x.m.pen))}</b>`,'#dc2626')}
+  ${K('Процент оплаты',(tot?(paid/tot*100):0).toFixed(1).replace('.',',')+' %',`оплачено ${fmtM(paid)} из ${fmtM(tot)}`,'#0891b2')}
+  ${K('Иски направлены в суд',cnt(filed.length),`сумма исков <b>${fmtM(sum(filed,x=>x.m.claimAmount))}</b><br>госпошлина <b>${fmtM(sum(filed,x=>x.m.fee))}</b>`,'#7c3aed')}
+  ${K('На рассмотрении в суде',cnt(pend.length),`сумма исков <b>${fmtM(sum(pend,x=>x.m.claimAmount))}</b>`,'#8b5cf6')}
+  ${K('Удовлетворено в суде',cnt(sat.length),`присуждено <b>${fmtM(sum(sat,x=>x.m.awarded))}</b><br>полностью ${satF.length} · частично ${satP.length}`,'#059669')}
+  ${K('Не удовлетворено в суде',cnt(rej.length+wd.length),`сумма исков <b>${fmtM(sum(rej,x=>x.m.claimAmount)+sum(wd,x=>x.m.claimAmount))}</b><br>отказано ${rej.length} · отозвано ${wd.length}`,'#64748b')}
+  ${K('Взыскано по решениям суда',cnt(coll.length),`сумма <b>${fmtM(sum(coll,x=>x.m.collected))}</b>`,'#10b981')}
+  ${K('Не взыскано — у ЧСИ',cnt(atB.length),`остаток <b>${fmtM(sum(atB,x=>x.m.enfRest))}</b><br>в т. ч. ожидают передачи ЧСИ: ${g(m=>m.enf==='await').length}`,'#b91c1c')}
+  ${K('Просроченные сроки',cnt(ovd.length+lim.length),`<span class="red">истёк срок оплаты, иск не подан: <b>${ovd.length}</b></span><br><span class="amber">приближается исковая давность: <b>${lim.length}</b></span>`,'#f59e0b')}
+ </div>
+ <div class="charts">
+  <div class="card"><h3>Динамика по месяцам, ₸</h3><div class="chart-box"><canvas id="ch1"></canvas></div></div>
+  <div class="card"><h3>Структура по статусам, шт.</h3><div class="chart-box"><canvas id="ch2"></canvas></div></div>
+  <div class="card"><h3>Воронка претензий, шт.</h3><div class="chart-box"><canvas id="ch3"></canvas></div></div>
+ </div>
+ <div class="card"><div class="card-h"><h3>Показатели по сотрудникам</h3><div class="toolbar">${can('export')?`<button class="btn sm" data-a="exportSummary">⬇ Сводный отчёт (.xlsx)</button>`:''}</div></div>
+ <div class="tbl-wrap">${empTable(M)}</div><p class="small mut" style="margin:8px 0 0">Нажмите на строку сотрудника, чтобы открыть реестр с фильтром по нему.</p></div>`;
+ drawCharts(M);
+}
+function empRows(M){
+ const ids=new Set(M.map(x=>x.c.emp));
+ return DB.employees.filter(e=>e.active||ids.has(e.id)).map(e=>{const X=M.filter(x=>x.c.emp===e.id);return{e,X,n:X.length,pen:sum(X,x=>x.m.pen),paid:sum(X,x=>x.m.paid),rest:sum(X,x=>Math.max(0,x.m.rest)),filed:X.filter(x=>x.m.filed).length,sat:X.filter(x=>x.m.sat).length,rej:X.filter(x=>x.m.result==='rejected'||x.m.result==='withdrawn').length,coll:sum(X,x=>x.m.collected),atB:sum(X,x=>x.m.enfRest)};});
+}
+function empTable(M){
+ const rows=empRows(M),T=k=>sum(rows,r=>r[k]),pct=(a,b)=>b?(a/b*100).toFixed(1).replace('.',',')+' %':'—';
+ return `<table class="tbl"><thead><tr><th>Исполнитель</th><th class="num">Претензий, шт.</th><th class="num">Сумма, ₸</th><th class="num">Оплачено, ₸</th><th class="num">Не оплачено, ₸</th><th class="num">% оплаты</th><th class="num">Исков, шт.</th><th class="num">Удовлетворено, шт.</th><th class="num">Не удовлетворено, шт.</th><th class="num">Взыскано по решениям, ₸</th><th class="num">У ЧСИ, ₸</th></tr></thead><tbody>
+ ${rows.map(r=>`<tr class="click" data-a="empFilter" data-id="${r.e.id}"><td>${esc(r.e.name)}<span class="tag">${esc(r.e.position)}</span>${r.e.active?'':'<span class="tag">неактивен</span>'}</td><td class="num">${r.n}</td><td class="num">${fmtN(r.pen)}</td><td class="num">${fmtN(r.paid)}</td><td class="num">${fmtN(r.rest)}</td><td class="num">${pct(r.paid,r.pen)}</td><td class="num">${r.filed}</td><td class="num">${r.sat}</td><td class="num">${r.rej}</td><td class="num">${fmtN(r.coll)}</td><td class="num">${fmtN(r.atB)}</td></tr>`).join('')}
+ </tbody><tfoot><tr><td>Итого</td><td class="num">${T('n')}</td><td class="num">${fmtN(T('pen'))}</td><td class="num">${fmtN(T('paid'))}</td><td class="num">${fmtN(T('rest'))}</td><td class="num">${pct(T('paid'),T('pen'))}</td><td class="num">${T('filed')}</td><td class="num">${T('sat')}</td><td class="num">${T('rej')}</td><td class="num">${fmtN(T('coll'))}</td><td class="num">${fmtN(T('atB'))}</td></tr></tfoot></table>`;
+}
+function drawCharts(M){
+ if(!window.Chart){document.querySelectorAll('.chart-box').forEach(b=>b.innerHTML='<p class="mut">Графики недоступны: не удалось загрузить библиотеку Chart.js (нужен интернет).</p>');return;}
+ Chart.defaults.font.family='"Segoe UI",Roboto,Arial,sans-serif';Chart.defaults.color='#475569';
+ const months={};M.forEach(({c,m})=>{const k=c.date.slice(0,7);months[k]=months[k]||{pen:0,paid:0};months[k].pen+=m.pen;months[k].paid+=m.paid;});
+ const keys=Object.keys(months).sort().slice(-24);
+ CHARTS.push(new Chart($('#ch1'),{type:'bar',data:{labels:keys.map(k=>k.slice(5)+'.'+k.slice(0,4)),datasets:[{label:'Предъявлено',data:keys.map(k=>r2(months[k].pen)),backgroundColor:'#3b82f6',borderRadius:3},{label:'Оплачено',data:keys.map(k=>r2(months[k].paid)),backgroundColor:'#22c55e',borderRadius:3}]},options:{maintainAspectRatio:false,plugins:{tooltip:{callbacks:{label:x=>x.dataset.label+': '+fmtM(x.raw)}},legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>short(v)}},x:{grid:{display:false}}}}}));
+ const sk=Object.keys(STATUS);
+ CHARTS.push(new Chart($('#ch2'),{type:'bar',data:{labels:sk.map(k=>STATUS[k].t),datasets:[{data:sk.map(k=>M.filter(x=>x.m.st===k).length),backgroundColor:sk.map(k=>STATUS[k].c),borderRadius:3}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>{const s=M.filter(y=>y.m.st===sk[x.dataIndex]);return `${x.raw} шт. · ${fmtM(sum(s,y=>y.m.pen))}`;}}}},scales:{x:{ticks:{precision:0}},y:{ticks:{callback:function(v){const l=this.getLabelForValue(v);return l.length>26?l.slice(0,25)+'…':l;}}}}}}));
+ const fun=[['Предъявлено',M],['Оплачено до суда',M.filter(x=>x.m.st==='paid')],['Иск в суд',M.filter(x=>x.m.filed)],['Удовлетворено',M.filter(x=>x.m.sat)],['Взыскано полностью',M.filter(x=>x.m.enf==='full')]];
+ CHARTS.push(new Chart($('#ch3'),{type:'bar',data:{labels:fun.map(f=>f[0]),datasets:[{data:fun.map(f=>f[1].length),backgroundColor:['#1d4ed8','#16a34a','#7c3aed','#059669','#10b981'],borderRadius:3}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>{const s=fun[x.dataIndex][1];const base=x.dataIndex===4?sum(s,y=>y.m.collected):x.dataIndex===3?sum(s,y=>y.m.awarded):x.dataIndex===2?sum(s,y=>y.m.claimAmount):sum(s,y=>y.m.pen);return `${x.raw} шт. · ${fmtM(base)}`;}}}},scales:{x:{ticks:{precision:0}}}}}));
+}
+
+/* =================== Реестр =================== */
+const SORT={reg:x=>x.c.reg,date:x=>x.c.date,emp:x=>empName(x.c.emp),cp:x=>x.c.cpName,bin:x=>x.c.bin,contract:x=>x.c.contractNo,period:x=>x.c.from,penalty:x=>x.m.pen,paid:x=>x.m.paid,rest:x=>x.m.rest,pay:x=>x.m.pay,filed:x=>x.m.filed?1:0,result:x=>x.m.result||'',enf:x=>x.m.enf||'',status:x=>x.m.st,next:x=>x.m.next?x.m.next[0]:'9999',updated:x=>x.c.updatedAt||''};
+function renderRegistry(el){
+ const L=UI.showDeleted?DB.claims.filter(c=>c.deleted):filtered();
+ const X=L.map(c=>({c,m:met(c)}));const{k,d}=UI.sort;
+ X.sort((a,b)=>{const va=SORT[k](a),vb=SORT[k](b);return (va<vb?-1:va>vb?1:0)*d;});
+ const pages=Math.max(1,Math.ceil(X.length/UI.size));if(UI.page>pages)UI.page=pages;
+ const P=X.slice((UI.page-1)*UI.size,UI.page*UI.size),t=TODAY();
+ const th=(key,label,cls='')=>`<th class="s ${cls}" data-a="sort" data-k="${key}">${label}${UI.sort.k===key?(UI.sort.d>0?' ▲':' ▼'):''}</th>`;
+ el.innerHTML=`<div class="card"><div class="card-h">
+  <div class="toolbar"><h3>${UI.showDeleted?'Удалённые претензии':'Реестр претензий'}</h3><span class="mut small">найдено: ${X.length}</span></div>
+  <div class="toolbar">
+   ${can('delete')?`<label class="chk small" style="padding:0"><input type="checkbox" data-ui="showDeleted" ${UI.showDeleted?'checked':''}> показать удалённые</label>`:''}
+   ${can('export')?`<button class="btn sm" data-a="exportRegistry">⬇ Экспорт в Excel</button>`:''}
+   ${can('create')&&!UI.showDeleted?`<button class="btn pri" data-a="newClaim">+ Новая претензия</button>`:''}
+  </div></div>
+  <div class="legend"><span style="--c:#fecaca">истёк срок добровольной оплаты, остаток не оплачен, иск не подан</span><span style="--c:#fde68a">приближается срок исковой давности (≤ 60 дней)</span></div>
+  <div class="tbl-wrap" style="margin-top:10px;max-height:70vh"><table class="tbl"><thead><tr>
+   ${th('reg','№')}${th('date','Дата')}${th('emp','Исполнитель')}${th('cp','Контрагент')}${th('bin','БИН')}${th('contract','№ договора')}${th('period','Период пени')}${th('penalty','Сумма пени, ₸','num')}${th('paid','Оплачено, ₸','num')}${th('rest','Остаток, ₸','num')}${th('pay','Статус оплаты')}${th('filed','Суд')}${th('result','Решение суда')}${th('enf','Статус взыскания')}${th('status','Общий статус')}${th('next','Ближайший срок')}${th('updated','Изменено')}${UI.showDeleted?'<th></th>':''}
+  </tr></thead><tbody>
+  ${P.length?P.map(({c,m})=>`<tr class="click ${m.overdue?'overdue':m.limSoon?'lim':''}" data-a="openClaim" data-id="${c.id}">
+   <td><b>${esc(c.reg)}</b></td><td>${fmtD(c.date)}</td><td>${esc(empName(c.emp))}</td><td class="wrap">${esc(c.cpName)}</td><td>${esc(c.bin)}</td><td>${esc(c.contractNo)}</td>
+   <td>${fmtD(c.from)} – ${fmtD(c.to)}</td><td class="num">${fmtN(m.pen)}</td><td class="num">${fmtN(m.paid)}</td><td class="num">${fmtN(Math.max(0,m.rest))}</td>
+   <td>${pill(PAY_ST[m.pay],PAY_C[m.pay])}</td><td>${m.filed?'да':'нет'}</td><td>${m.result?esc(RESULTS[m.result]):'—'}</td><td>${m.enf?pill(ENF_ST[m.enf],ENF_C[m.enf]):'—'}</td>
+   <td>${pill(STATUS[m.st].t,STATUS[m.st].c)}${m.result==='satisfied_full'?'<span class="tag">полностью</span>':m.result==='satisfied_partial'?'<span class="tag">частично</span>':''}</td>
+   <td>${m.next?`<span class="${m.next[0]<t?'red':days(t,m.next[0])<=7?'amber':''}">${fmtD(m.next[0])}</span> <span class="mut small">${m.next[1]}</span>`:'—'}</td>
+   <td>${fmtDT(c.updatedAt)}<br><span class="mut small">${esc(empName(c.updatedBy))}</span></td>
+   ${UI.showDeleted?`<td><button class="btn sm" data-a="restore" data-id="${c.id}">Восстановить</button></td>`:''}
+  </tr>`).join(''):`<tr><td colspan="18" class="mut" style="text-align:center;padding:30px">Претензий не найдено</td></tr>`}
+  </tbody><tfoot><tr><td colspan="7">Итого (${X.length} шт.)</td><td class="num">${fmtN(sum(X,x=>x.m.pen))}</td><td class="num">${fmtN(sum(X,x=>x.m.paid))}</td><td class="num">${fmtN(sum(X,x=>Math.max(0,x.m.rest)))}</td><td colspan="${UI.showDeleted?8:7}"></td></tr></tfoot></table></div>
+  <div class="pager">Показывать по <select data-ui="size">${opts([[25,25],[50,50],[100,100]],UI.size)}</select>
+   <button class="btn sm" data-a="page" data-p="${UI.page-1}" ${UI.page<=1?'disabled':''}>‹ Назад</button><span>стр. ${UI.page} из ${pages}</span><button class="btn sm" data-a="page" data-p="${UI.page+1}" ${UI.page>=pages?'disabled':''}>Вперёд ›</button></div>
+ </div>`;
+}
+
+/* =================== Карточка претензии =================== */
+function openModal(html,cls=''){$('#modal-root').innerHTML=`<div class="modal-back"><div class="modal ${cls}">${html}</div></div>`;}
+function setHash(h){try{history.replaceState(null,'',location.pathname+location.search+h);}catch(e){}}
+function closeModal(){$('#modal-root').innerHTML='';CARD=null;PROFILE=null;if(location.hash.startsWith('#claim='))setHash('');}
+function openClaim(id){
+ const c=DB.claims.find(x=>x.id===id);if(!c){toast('Претензия не найдена',true);return;}
+ const cc=clone(c);cc.court=Object.assign(blankClaim().court,cc.court||{});cc.enf=Object.assign(blankClaim().enf,cc.enf||{});cc.payments=cc.payments||[];cc.files=cc.files||[];
+ CARD={c:cc,orig:clone(cc),isNew:false,tab:'main',baseVersion:c.version,ro:!can('edit')||c.deleted,errors:[],dueAuto:false,regAuto:false};
+ setHash('#claim='+id);
+ showCard();
+}
+function newClaim(){const c=blankClaim();CARD={c,orig:clone(c),isNew:true,tab:'main',baseVersion:0,ro:false,errors:[],dueAuto:true,regAuto:true};showCard();}
+function showCard(){
+ const c=CARD.c;
+ openModal(`<div class="modal-h"><h2>${CARD.isNew?'Новая претензия':'Претензия '+esc(c.reg)}</h2><span id="card-status"></span>${c.deleted?'<span class="pill" style="--c:#b91c1c">удалена</span>':''}${CARD.ro&&!c.deleted?'<span class="tag">только просмотр</span>':''}<span class="spacer"></span><button class="x" data-a="closeCard" title="Закрыть">✕</button></div>
+  <div class="ctabs" id="card-tabs"></div><div class="modal-b" id="card-body"></div>
+  <div class="modal-f"><div class="sumbar" id="card-sum"></div><span class="spacer"></span>
+   ${!CARD.isNew&&can('delete')?(c.deleted?`<button class="btn" data-a="restore" data-id="${c.id}">Восстановить</button>`:`<button class="btn danger" data-a="claimDelete">Удалить</button>`):''}
+   <button class="btn" data-a="closeCard">${CARD.ro?'Закрыть':'Отмена'}</button>
+   ${!CARD.ro?`<button class="btn pri" data-a="saveCard">Сохранить</button>`:''}
+  </div>`,'xl');
+ renderCardBody();
+}
+function renderCardBody(){
+ if(!CARD)return;const m=met(CARD.c);
+ const tabs=[['main','Основное'],['calc','Расчёт пени'],['pay','Оплаты'+(CARD.c.payments.length?` (${CARD.c.payments.length})`:'')],['court','Суд'],['enf','Взыскание',!m.sat],['files','Файлы'+(CARD.c.files.filter(f=>!f.deleted).length?` (${CARD.c.files.filter(f=>!f.deleted).length})`:'')],['hist','История',CARD.isNew]];
+ $('#card-tabs').innerHTML=tabs.map(t=>`<button class="${CARD.tab===t[0]?'on':''}" data-a="ctab" data-t="${t[0]}" ${t[2]?'disabled title="Недоступно"':''}>${t[1]}</button>`).join('');
+ const errs=CARD.errors.length?`<div class="errs"><b>Проверьте данные:</b><ul>${CARD.errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`:'';
+ $('#card-body').innerHTML=errs+({main:cardMain,calc:cardCalc,pay:cardPay,court:cardCourt,enf:cardEnf,files:cardFiles,hist:cardHist})[CARD.tab]();
+ refreshCardLive();
+}
+function refreshCardLive(){
+ if(!CARD)return;const c=CARD.c,m=met(c);
+ const st=$('#card-status');if(st)st.innerHTML=pill(STATUS[m.st].t,STATUS[m.st].c)+(m.result==='satisfied_full'?'<span class="tag">полностью</span>':m.result==='satisfied_partial'?'<span class="tag">частично</span>':'');
+ const s=$('#card-sum');if(s)s.innerHTML=`<span>Пеня: <b>${fmtM(m.pen)}</b></span><span>Оплачено: <b class="green">${fmtM(m.paid)}</b></span><span>Остаток: <b class="${m.rest>0?'red':''}">${fmtM(Math.max(0,m.rest))}</b></span>${m.pay?pill(PAY_ST[m.pay],PAY_C[m.pay]):''}${m.sat?`<span>Присуждено: <b>${fmtM(m.awarded)}</b></span><span>Взыскано: <b class="green">${fmtM(m.collected)}</b></span><span>У ЧСИ: <b class="red">${fmtM(m.enfRest)}</b></span>`:''}`;
+ const cr=$('#calc-res');if(cr)cr.innerHTML=calcResultHTML();
+ const ps=$('#pay-sum');if(ps)ps.innerHTML=`Оплачено всего: <b>${fmtM(m.paid)}</b> · Остаток: <b>${fmtM(Math.max(0,m.rest))}</b> · ${pill(PAY_ST[m.pay],PAY_C[m.pay])}`;
+ const es=$('#enf-sum');if(es&&m.sat)es.innerHTML=`Взыскано по решению: <b>${fmtM(m.collected)}</b> · Не взыскано (у ЧСИ): <b>${fmtM(m.enfRest)}</b> · ${pill(ENF_ST[m.enf],ENF_C[m.enf])}`;
+ const pc=$('#pen-calc-hint');if(pc&&c.calc&&c.calc.lines&&c.calc.lines.length)pc.textContent='по расчёту: '+fmtM(computeCalc(c.calc,c.contractAmount).total);
+}
+function syncInputs(){
+ document.querySelectorAll('#card-body [data-b]').forEach(el=>{if(el===document.activeElement)return;const v=getP(CARD.c,el.dataset.b);if(el.type==='checkbox')el.checked=!!v;else el.value=v??'';});
+}
+function fld(label,path,o={}){
+ const v=getP(CARD.c,path),dis=(o.dis||CARD.ro)?'disabled':'',r=o.r?'data-r':'',t=o.t?`data-t="${o.t}"`:'';let ctl;
+ if(o.type==='checkbox')return `<label class="chk ${o.full?'full':''}"><input type="checkbox" data-b="${path}" data-t="bool" ${r} ${v?'checked':''} ${dis}> ${label}</label>`;
+ if(o.opts)ctl=`<select data-b="${path}" ${t} ${r} ${dis}>${opts(o.opts,v,o.empty)}</select>`;
+ else if(o.type==='textarea')ctl=`<textarea data-b="${path}" rows="${o.rows||2}" ${dis}>${esc(v)}</textarea>`;
+ else ctl=`<input type="${o.type||'text'}" data-b="${path}" ${t} ${r} value="${esc(v??'')}" ${o.list?`list="${o.list}"`:''} ${o.step?`step="${o.step}"`:''} ${o.type==='number'?'min="0"':''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.max?`maxlength="${o.max}"`:''} ${dis}>`;
+ return `<label class="f ${o.full?'full':''}"><span>${label}${o.req?' <i>*</i>':''}</span>${ctl}${o.hint||o.hintId?`<small ${o.hintId?`id="${o.hintId}"`:''}>${o.hint||''}</small>`:''}</label>`;
+}
+function cardMain(){
+ const c=CARD.c,emps=DB.employees.filter(e=>e.active||e.id===c.emp).map(e=>[e.id,e.name+' — '+e.position]);
+ const cp=DB.counterparties.find(x=>x.id===c.cpId)||DB.counterparties.find(x=>x.name.toLowerCase()===String(c.cpName).trim().toLowerCase());
+ const cts=cp?DB.contracts.filter(x=>x.cpId===cp.id):[];
+ const hasCalc=c.calc&&c.calc.lines&&c.calc.lines.length;
+ return `<div class="grid">
+  ${fld('Регистрационный № претензии','reg',{req:1,hint:'формируется автоматически, можно исправить'})}
+  ${fld('Дата претензии','date',{type:'date',req:1,hint:'дата направления контрагенту'})}
+  ${fld('Исполнитель','emp',{req:1,opts:emps,empty:'— выберите —',dis:!CARD.isNew&&!can('reassign'),hint:!CARD.isNew&&!can('reassign')?'сменить исполнителя может руководитель':''})}
+  ${fld('Контрагент (наименование)','cpName',{req:1,list:'dl-cp',ph:'начните вводить…',hint:cp?'из справочника':c.cpName?'новый — будет добавлен в справочник':''})}
+  ${fld('БИН контрагента','bin',{req:1,max:12,ph:'12 цифр'})}
+  ${fld('№ договора','contractNo',{req:1,list:'dl-ct',hint:cts.length?`договоров в справочнике: ${cts.length}`:''})}
+  ${fld('Дата договора','contractDate',{type:'date'})}
+  ${fld('Сумма договора, ₸','contractAmount',{type:'number',t:'num',step:'0.01',hint:'для ограничения пени'})}
+  ${fld('Период начисления пени — с','from',{type:'date',req:1})}
+  ${fld('Период начисления пени — по','to',{type:'date',req:1})}
+  ${fld('Основание / предмет','basis',{ph:'например, просрочка поставки'})}
+  ${fld('Сумма пени по претензии, ₸','penalty',{type:'number',t:'num',step:'0.01',req:1,hintId:'pen-calc-hint',hint:hasCalc?'':'можно рассчитать во вкладке «Расчёт пени»'})}
+  ${fld('Срок добровольной оплаты','due',{type:'date',hint:`по умолчанию дата претензии + ${DB.settings.dueDays} дн.`})}
+  ${fld('Сумма пени изменена вручную','penaltyManual',{type:'checkbox',r:1})}
+  ${c.penaltyManual?fld('Причина ручного изменения суммы пени','manualReason',{req:1,full:1,ph:'попадёт в журнал изменений'}):''}
+  ${fld('Примечание','note',{type:'textarea',full:1,rows:3})}
+ </div>
+ <datalist id="dl-cp">${DB.counterparties.map(x=>`<option value="${esc(x.name)}">${esc(x.bin)}</option>`).join('')}</datalist>
+ <datalist id="dl-ct">${cts.map(x=>`<option value="${esc(x.number)}">от ${fmtD(x.date)}</option>`).join('')}</datalist>
+ ${!CARD.isNew?`<p class="small mut" style="margin-top:14px">Создал: ${esc(empName(c.createdBy))}, ${fmtDT(c.createdAt)} · Изменил: ${esc(empName(c.updatedBy))}, ${fmtDT(c.updatedAt)} · версия ${c.version}${c.importId?' · загружено импортом':''}</p>`:''}`;
+}
+function defaultLine(){
+ const c=CARD.c,S=DB.settings,ct=DB.contracts.find(x=>x.id===c.contractId);
+ return{id:uid(),principal:c.contractAmount||null,dueDate:c.from?addDays(c.from,-1):'',endDate:c.to||'',method:ct&&ct.method||S.defaultMethod,rate:ct&&ct.rate!=null?ct.rate:S.defaultRate,capPct:ct&&ct.capPct!=null?ct.capPct:S.defaultCapPct,capBase:'obligation',partials:[]};
+}
+function cardCalc(){
+ const c=CARD.c,dis=CARD.ro?'disabled':'';
+ if(!c.calc)c.calc={lines:[],asOf:'',total:0};
+ const L=c.calc.lines;
+ const rateLabel=m=>m==='pct'?'Ставка, % в день':m==='fixed'?'Сумма в день, ₸':m==='fine'?'Штраф, % от суммы':'Ставка НБ РК — по справочнику';
+ return `<div class="info">Дни просрочки считаются ${DB.settings.dayRule==='next_incl'?'со дня, следующего за сроком исполнения, по день исполнения <b>включительно</b>':'со дня, следующего за сроком исполнения, <b>без</b> дня исполнения'} (календарные дни). Частичное исполнение уменьшает базу со следующего дня. Для метода НБ РК период делится при смене ставки.</div>
+ ${L.map((l,i)=>`<div class="box"><div class="box-h"><b>Строка ${i+1}</b><span class="mut small">${esc(METHODS[l.method])}</span><span class="spacer"></span>${!CARD.ro?`<button class="btn sm danger" data-a="calcDelLine" data-i="${i}">Удалить строку</button>`:''}</div>
+  <div class="grid">
+   ${fld('Сумма просроченного обязательства, ₸',`calc.lines.${i}.principal`,{type:'number',t:'num',step:'0.01'})}
+   ${fld('Срок исполнения (наступил)',`calc.lines.${i}.dueDate`,{type:'date'})}
+   ${fld('Дата исполнения / расчёта',`calc.lines.${i}.endDate`,{type:'date',dis:l.method==='fine'})}
+   ${fld('Метод расчёта',`calc.lines.${i}.method`,{opts:Object.entries(METHODS),r:1})}
+   ${l.method!=='nbrk'?fld(rateLabel(l.method),`calc.lines.${i}.rate`,{type:'number',t:'num',step:'0.001'}):`<label class="f"><span>Ставка</span><input disabled value="по справочнику ставок НБ РК"></label>`}
+   ${fld('Ограничение пени, % (0 — без лимита)',`calc.lines.${i}.capPct`,{type:'number',t:'num',step:'0.01'})}
+   ${fld('Лимит считается от',`calc.lines.${i}.capBase`,{opts:[['obligation','суммы обязательства'],['contract','суммы договора']]})}
+  </div>
+  ${l.method!=='fine'?`<div class="sec">Частичные исполнения внутри периода</div>
+  ${(l.partials||[]).length?`<table class="tbl" style="max-width:560px"><thead><tr><th>Дата</th><th>Сумма, ₸</th><th></th></tr></thead><tbody>${l.partials.map((p,j)=>`<tr><td><input type="date" data-b="calc.lines.${i}.partials.${j}.date" value="${p.date||''}" ${dis}></td><td><input type="number" step="0.01" min="0" data-t="num" data-b="calc.lines.${i}.partials.${j}.amount" value="${p.amount??''}" ${dis}></td><td>${!CARD.ro?`<button class="x" data-a="calcDelPartial" data-i="${i}" data-j="${j}">✕</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<p class="small mut" style="margin:0">нет</p>'}
+  ${!CARD.ro?`<button class="btn sm" style="margin-top:8px" data-a="calcAddPartial" data-i="${i}">+ Частичное исполнение</button>`:''}`:''}
+ </div>`).join('')}
+ ${!CARD.ro?`<button class="btn" data-a="calcAddLine">+ Строка расчёта (обязательство)</button>`:''}
+ <div class="box" style="margin-top:14px"><div class="box-h"><b>Пересчёт на дату</b><span class="small mut">например, на дату подачи иска — заменяет дату расчёта во всех строках</span></div>
+  <div class="toolbar"><input type="date" data-b="calc.asOf" value="${c.calc.asOf||''}" ${dis}>${!CARD.ro?`<button class="btn sm" data-a="calcAsOfToday">Сегодня</button>${c.court.filedDate?`<button class="btn sm" data-a="calcAsOfSuit">На дату иска (${fmtD(c.court.filedDate)})</button>`:''}<button class="btn sm" data-a="calcAsOfClear">Сбросить</button>`:''}</div></div>
+ <div id="calc-res"></div>
+ <div class="toolbar" style="margin-top:12px">
+  ${!CARD.ro?`<button class="btn pri" data-a="calcApply">Перенести сумму в претензию</button>`:''}
+  ${can('export')?`<button class="btn" data-a="calcXlsx">⬇ Расчёт в Excel</button><button class="btn" data-a="calcPdf">🖨 Расчёт в PDF / печать</button>`:''}
+ </div>`;
+}
+function calcResultHTML(){
+ const c=CARD.c;if(!c.calc||!c.calc.lines.length)return '<p class="mut" style="margin-top:14px">Добавьте строку расчёта.</p>';
+ const R=computeCalc(c.calc,c.contractAmount);
+ return `<div class="sec">Результат расчёта${c.calc.asOf?` на ${fmtD(c.calc.asOf)}`:''}</div>
+ ${R.lines.map((r,i)=>{const l=c.calc.lines[i];return `<div class="box"><div class="box-h"><b>Строка ${i+1}</b><span class="mut small">обязательство ${fmtM(l.principal)} · ${esc(METHODS[l.method])}</span></div>
+ ${r.rows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Период с</th><th>по</th><th class="num">База, ₸</th><th class="num">Дней</th><th>Ставка</th><th class="num">Пеня, ₸</th></tr></thead><tbody>
+ ${r.rows.map(x=>`<tr><td>${fmtD(x.from)}</td><td>${fmtD(x.to)}</td><td class="num">${fmtN(x.base)}</td><td class="num">${x.days??'—'}</td><td>${esc(x.rate)}</td><td class="num">${fmtN(x.amount)}</td></tr>`).join('')}
+ </tbody><tfoot><tr><td colspan="5">Начислено${r.capped?` · <span class="amber">лимит ${fmtN(r.cap)} ₸ — сумма срезана до лимита</span>`:r.cap!=null?` · лимит ${fmtN(r.cap)} ₸ не превышен`:''}</td><td class="num">${r.capped?`<s class="mut">${fmtN(r.raw)}</s> `:''}${fmtN(r.total)}</td></tr></tfoot></table></div>`:'<p class="small mut">Недостаточно данных или нет дней просрочки.</p>'}</div>`;}).join('')}
+ <div class="toolbar"><span>Итого пеня по расчёту:</span><span class="total-big">${fmtM(R.total)}</span>${Math.abs(R.total-(+c.penalty||0))>0.009?`<span class="tag">в претензии: ${fmtM(c.penalty)}</span>`:'<span class="pill" style="--c:#16a34a">совпадает с суммой претензии</span>'}</div>`;
+}
+function payTable(path,list){
+ const dis=CARD.ro?'disabled':'';
+ return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:150px">Дата</th><th style="width:170px">Сумма, ₸</th><th style="width:180px">№ платёжного документа</th><th>Примечание</th><th>Источник</th><th></th></tr></thead><tbody>
+ ${list.length?list.map((p,i)=>`<tr><td><input type="date" data-b="${path}.${i}.date" value="${p.date||''}" ${dis}></td><td><input type="number" step="0.01" min="0" data-t="num" data-b="${path}.${i}.amount" value="${p.amount??''}" ${dis}></td><td><input data-b="${path}.${i}.doc" value="${esc(p.doc)}" ${dis}></td><td><input data-b="${path}.${i}.note" value="${esc(p.note)}" ${dis}></td><td>${esc(p.source||'вручную')}</td><td>${!CARD.ro?`<button class="x" data-a="payDel" data-p="${path}" data-i="${i}" title="Удалить">✕</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="mut" style="text-align:center;padding:16px">Платежей нет</td></tr>'}
+ </tbody></table></div>${!CARD.ro?`<button class="btn sm" style="margin-top:8px" data-a="payAdd" data-p="${path}">+ Добавить платёж</button>`:''}`;
+}
+function cardPay(){return `<div class="sec" style="margin-top:0">Оплаты по претензии (досудебная стадия)</div>${payTable('payments',CARD.c.payments)}<p id="pay-sum" style="margin-top:12px"></p>`;}
+function cardCourt(){
+ const c=CARD.c,ct=c.court,m=met(c);
+ if(!ct.filed)return `<div class="grid">${fld('Направлен иск в суд','court.filed',{type:'checkbox',r:1})}</div><p class="mut">Судебная стадия станет доступна после включения флажка.</p>`;
+ const satisfied=ct.result==='satisfied_full'||ct.result==='satisfied_partial';
+ return `<div class="grid">
+  ${fld('Направлен иск в суд','court.filed',{type:'checkbox',r:1,full:1})}
+  ${fld('Дата подачи иска','court.filedDate',{type:'date',req:1})}
+  ${fld('Наименование суда','court.court',{full:0})}
+  ${fld('№ дела','court.caseNo')}
+  ${fld('Сумма иска, ₸','court.amount',{type:'number',t:'num',step:'0.01',hint:`остаток к оплате: ${fmtN(Math.max(0,m.rest))}`})}
+  ${fld('Госпошлина, ₸','court.fee',{type:'number',t:'num',step:'0.01'})}
+  ${fld('Дата и время ближайшего заседания','court.hearing',{type:'datetime-local'})}
+  ${fld('Решение суда','court.result',{opts:Object.entries(RESULTS),r:1})}
+  ${fld('Дата решения суда','court.decisionDate',{type:'date'})}
+  ${fld('Дата вступления решения в силу','court.effectiveDate',{type:'date'})}
+  ${satisfied?fld('Сумма, присуждённая судом, ₸','court.awarded',{type:'number',t:'num',step:'0.01',req:1,hint:ct.result==='satisfied_partial'?'при частичном удовлетворении — меньше суммы иска':''}):''}
+  ${fld('Примечание по суду','court.note',{type:'textarea',full:1})}
+ </div>
+ ${!CARD.ro?`<div class="toolbar" style="margin-top:12px"><button class="btn sm" data-a="courtRest">Сумма иска = остаток</button><button class="btn sm" data-a="courtRecalc">Пересчитать пеню на дату иска → сумма иска</button></div>`:''}
+ <p class="small mut">«Удовлетворена / не удовлетворена» — решение суда. «Взыскано / не взыскано» — результат исполнения (вкладка «Взыскание»).</p>`;
+}
+function cardEnf(){
+ const c=CARD.c,m=met(c);
+ if(!m.sat)return '<p class="mut">Раздел доступен, если иск удовлетворён полностью или частично.</p>';
+ return `<div class="grid">
+  ${fld('№ исполнительного листа','enf.writNo')}${fld('Дата исполнительного листа','enf.writDate',{type:'date'})}
+  ${fld('Частный судебный исполнитель (ЧСИ)','enf.bailiff',{ph:'ФИО или наименование'})}${fld('Дата передачи ЧСИ','enf.transferDate',{type:'date'})}
+  ${fld('№ исполнительного производства','enf.procNo')}${fld('Примечание по исполнению','enf.note',{type:'textarea',full:1})}
+ </div><div class="sec">Поступления по решению суда</div>${payTable('enf.payments',c.enf.payments)}<p id="enf-sum" style="margin-top:12px"></p>`;
+}
+function cardFiles(){
+ const F=CARD.c.files.filter(f=>!f.deleted);
+ return `${!CARD.ro?`<div class="box"><div class="toolbar"><label class="f"><span>Тип документа</span><select id="file-type">${opts(DOC_TYPES.map(x=>[x,x]),DOC_TYPES[0])}</select></label>
+  <label class="f"><span>Файл (PDF, DOC/DOCX, XLS/XLSX, JPG/PNG, до 20 МБ)</span><input type="file" id="file-inp" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"></label>
+  <button class="btn pri" data-a="fileUpload" style="align-self:end">Загрузить</button></div><p class="small mut" style="margin:8px 0 0">Файлы хранятся в браузере (IndexedDB). Действия с файлами попадают в журнал после сохранения претензии.</p></div>`:''}
+ <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Тип документа</th><th>Имя файла</th><th class="num">Размер</th><th>Загрузил</th><th>Когда</th><th></th></tr></thead><tbody>
+ ${F.length?F.map(f=>`<tr><td>${esc(f.type)}</td><td class="wrap">${esc(f.name)}${f._new?' <span class="tag">не сохранён</span>':''}</td><td class="num">${(f.size/1024/1024).toFixed(2).replace('.',',')} МБ</td><td>${esc(empName(f.by))}</td><td>${fmtDT(f.at)}</td><td><button class="btn sm" data-a="fileView" data-id="${f.id}">Открыть</button> <button class="btn sm" data-a="fileDl" data-id="${f.id}">Скачать</button> ${!CARD.ro?`<button class="btn sm danger" data-a="fileDel" data-id="${f.id}">Удалить</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="mut" style="text-align:center;padding:16px">Файлов нет</td></tr>'}
+ </tbody></table></div>`;
+}
+function cardHist(){
+ const A=DB.audit.filter(a=>a.claimId===CARD.c.id).sort((a,b)=>a.ts<b.ts?1:-1);
+ return auditTable(A,false);
+}
+/* привязка полей карточки */
+function onCardField(e){
+ const el=e.target;if(!CARD||!el.dataset||!el.dataset.b)return;
+ let v=el.type==='checkbox'?el.checked:el.value;
+ if(el.dataset.t==='num')v=parseNum(v);
+ const path=el.dataset.b,c=CARD.c;
+ setP(c,path,v);
+ let rerender=e.type==='change'&&el.hasAttribute('data-r');
+ if(e.type==='change'){
+  if(path==='cpName'){const cp=DB.counterparties.find(x=>x.name.toLowerCase()===String(v).trim().toLowerCase());if(cp){c.cpId=cp.id;c.cpName=cp.name;c.bin=cp.bin;}else c.cpId=null;c.contractId=null;rerender=true;}
+  if(path==='contractNo'){const ct=DB.contracts.find(x=>x.cpId===c.cpId&&x.number.toLowerCase()===String(v).trim().toLowerCase());if(ct){c.contractId=ct.id;c.contractNo=ct.number;c.contractDate=ct.date;c.contractAmount=ct.amount;}else c.contractId=null;}
+  if(path==='date'&&v){if(CARD.dueAuto||!c.due){c.due=addDays(v,+DB.settings.dueDays||10);CARD.dueAuto=true;}if(CARD.regAuto)c.reg=nextReg(DB,v);}
+  if(path==='due')CARD.dueAuto=false;
+  if(path==='reg')CARD.regAuto=false;
+  if(path==='penalty'&&c.calc&&c.calc.lines&&c.calc.lines.length){const tot=computeCalc(c.calc,c.contractAmount).total;if(Math.abs((+v||0)-tot)>0.009&&!c.penaltyManual){c.penaltyManual=true;rerender=true;toast('Сумма отличается от расчёта — отмечено «изменена вручную», укажите причину');}}
+  if(path==='court.filed'&&v&&c.court.amount==null){c.court.amount=r2(Math.max(0,met(c).rest));if(!c.court.filedDate)c.court.filedDate=TODAY();}
+  if(path==='court.result'&&v==='satisfied_full'&&c.court.awarded==null)c.court.awarded=c.court.amount;
+ }
+ if(rerender)renderCardBody();else{syncInputs();refreshCardLive();}
+}
+function validate(c){
+ const E=[],S=DB.settings;
+ if(!String(c.reg).trim())E.push('Укажите регистрационный № претензии');
+ else if(DB.claims.some(x=>x.id!==c.id&&!x.deleted&&x.reg===c.reg.trim()))E.push(`Регистрационный № ${c.reg} уже используется`);
+ if(!c.date)E.push('Укажите дату претензии');
+ if(!c.emp)E.push('Выберите исполнителя');
+ if(!String(c.cpName).trim())E.push('Укажите контрагента');
+ if(!/^\d{12}$/.test(String(c.bin).trim()))E.push('БИН должен состоять ровно из 12 цифр');
+ if(!String(c.contractNo).trim())E.push('Укажите № договора');
+ if(!c.from||!c.to)E.push('Укажите период начисления пени');else if(c.to<c.from)E.push('Дата «по» периода пени не может быть раньше даты «с»');
+ if(c.penalty==null||c.penalty==='')E.push('Укажите сумму пени (или рассчитайте её)');
+ [['contractAmount','Сумма договора'],['penalty','Сумма пени']].forEach(([k,l])=>{if(c[k]!=null&&c[k]<0)E.push(l+' не может быть отрицательной');});
+ if(c.penaltyManual&&!String(c.manualReason||'').trim())E.push('Укажите причину ручного изменения суммы пени');
+ c.payments.forEach((p,i)=>{if(!p.date)E.push(`Оплата №${i+1}: укажите дату`);if(!(+p.amount>0))E.push(`Оплата №${i+1}: сумма должна быть больше 0`);});
+ if(c.court.filed){
+  if(!c.court.filedDate)E.push('Суд: укажите дату подачи иска');
+  ['amount','fee','awarded'].forEach(k=>{if(c.court[k]!=null&&c.court[k]<0)E.push('Суд: суммы не могут быть отрицательными');});
+  if((c.court.result==='satisfied_full'||c.court.result==='satisfied_partial')&&!(+c.court.awarded>0))E.push('Суд: укажите сумму, присуждённую судом');
+  if(c.court.result==='satisfied_partial'&&+c.court.awarded>+c.court.amount)E.push('Суд: при частичном удовлетворении присуждённая сумма должна быть меньше суммы иска');
+  c.enf.payments.forEach((p,i)=>{if(!p.date)E.push(`Поступление №${i+1}: укажите дату`);if(!(+p.amount>0))E.push(`Поступление №${i+1}: сумма должна быть больше 0`);});
+ }
+ return E;
+}
+const FIELD_LABELS={reg:'Рег. №',date:'Дата претензии',emp:'Исполнитель',cpName:'Контрагент',bin:'БИН',contractNo:'№ договора',contractDate:'Дата договора',contractAmount:'Сумма договора',from:'Период пени с',to:'Период пени по',basis:'Основание',penalty:'Сумма пени',penaltyManual:'Сумма изменена вручную',manualReason:'Причина ручного изменения',due:'Срок добровольной оплаты',note:'Примечание',
+ 'court.filed':'Направлен иск в суд','court.filedDate':'Дата подачи иска','court.court':'Суд','court.caseNo':'№ дела','court.amount':'Сумма иска','court.fee':'Госпошлина','court.hearing':'Дата заседания','court.result':'Решение суда','court.decisionDate':'Дата решения','court.effectiveDate':'Дата вступления в силу','court.awarded':'Присуждённая сумма','court.note':'Примечание по суду',
+ 'enf.writNo':'№ исп. листа','enf.writDate':'Дата исп. листа','enf.bailiff':'ЧСИ','enf.transferDate':'Дата передачи ЧСИ','enf.procNo':'№ исп. производства','enf.note':'Примечание по исполнению'};
+function fmtVal(k,v){
+ if(v==null||v==='')return '';
+ if(typeof v==='boolean')return v?'да':'нет';
+ if(k==='emp')return empName(v);if(k==='court.result')return RESULTS[v]||v;
+ if(/amount|penalty|fee|awarded|Amount/.test(k))return fmtN(v);
+ if(/^\d{4}-\d{2}-\d{2}/.test(String(v)))return String(v).length>10?fmtDT(v):fmtD(v);
+ return String(v);
+}
+function diffClaim(o,n){
+ const D=[];
+ Object.keys(FIELD_LABELS).forEach(k=>{const a=getP(o,k),b=getP(n,k);const na=a===''||a==null?'':a,nb=b===''||b==null?'':b;if(k==='court.filed'||k==='penaltyManual'){if(!!a!==!!b)D.push([FIELD_LABELS[k],fmtVal(k,!!a),fmtVal(k,!!b)]);return;}if(String(na)!==String(nb))D.push([FIELD_LABELS[k],fmtVal(k,na),fmtVal(k,nb)]);});
+ [['payments','Оплата'],['enf.payments','Поступление по решению']].forEach(([p,l])=>{
+  const A=getP(o,p)||[],B=getP(n,p)||[];
+  B.forEach(b=>{const a=A.find(x=>x.id===b.id);if(!a)D.push([l+' добавлена','',`${fmtD(b.date)} · ${fmtN(b.amount)}${b.doc?' · '+b.doc:''}`]);else if(a.date!==b.date||+a.amount!==+b.amount||a.doc!==b.doc||a.note!==b.note)D.push([l+' изменена',`${fmtD(a.date)} · ${fmtN(a.amount)} · ${a.doc||''}`,`${fmtD(b.date)} · ${fmtN(b.amount)} · ${b.doc||''}`]);});
+  A.forEach(a=>{if(!B.find(x=>x.id===a.id))D.push([l+' удалена',`${fmtD(a.date)} · ${fmtN(a.amount)}`,'']);});
+ });
+ const cs=x=>x.calc?JSON.stringify({l:x.calc.lines,a:x.calc.asOf}):'';
+ if(cs(o)!==cs(n))D.push(['Расчёт пени',o.calc?fmtN(o.calc.total):'',n.calc?fmtN(n.calc.total):'']);
+ return D;
+}
+function saveCard(){
+ const c=CARD.c;
+ ['reg','cpName','bin','contractNo'].forEach(k=>c[k]=String(c[k]||'').trim());
+ if(CARD.isNew&&CARD.regAuto){const f=readDB();if(f)DB=f;c.reg=nextReg(DB,c.date);}
+ CARD.errors=validate(c);
+ if(CARD.errors.length){renderCardBody();$('#card-body').scrollTop=0;return;}
+ const fresh=readDB();
+ if(!CARD.isNew){const cur=fresh.claims.find(x=>x.id===c.id);if(cur&&cur.version!==CARD.baseVersion){CARD.errors=[`Запись изменена сотрудником ${empName(cur.updatedBy)} (${fmtDT(cur.updatedAt)}), обновите карточку. Ваши изменения не сохранены.`];renderCardBody();return;}}
+ DB=fresh;
+ if(c.calc&&c.calc.lines&&c.calc.lines.length){c.calc.total=computeCalc(c.calc,c.contractAmount).total;}else c.calc=null;
+ if(!c.penaltyManual)c.manualReason='';
+ let cp=DB.counterparties.find(x=>x.name.toLowerCase()===c.cpName.toLowerCase());
+ if(!cp){cp={id:uid(),name:c.cpName,bin:c.bin};DB.counterparties.push(cp);audit('settings',{field:'Справочник контрагентов',new:`${cp.name} (${cp.bin})`,note:'добавлен из претензии '+c.reg});}
+ c.cpId=cp.id;
+ let ct=DB.contracts.find(x=>x.cpId===cp.id&&x.number.toLowerCase()===c.contractNo.toLowerCase());
+ if(!ct){ct={id:uid(),cpId:cp.id,number:c.contractNo,date:c.contractDate||'',amount:c.contractAmount,method:DB.settings.defaultMethod,rate:DB.settings.defaultRate,capPct:DB.settings.defaultCapPct};DB.contracts.push(ct);audit('settings',{field:'Справочник договоров',new:`${ct.number} — ${cp.name}`,note:'добавлен из претензии '+c.reg});}
+ c.contractId=ct.id;
+ const now=nowISO(),o=CARD.orig;
+ c.files.forEach(f=>{if(f._new&&!f.deleted)audit('file_add',{claimId:c.id,reg:c.reg,field:f.type,new:f.name});if(f._del&&!f._new)audit('file_del',{claimId:c.id,reg:c.reg,field:f.type,old:f.name});delete f._new;delete f._del;});
+ c.files=c.files.filter(f=>!(f.deleted&&!o.files.find(x=>x.id===f.id)));
+ c.updatedAt=now;c.updatedBy=ME.id;c.version=(c.version||0)+1;
+ let assigned=false;
+ if(CARD.isNew){c.createdAt=now;c.createdBy=ME.id;DB.claims.push(c);audit('create',{claimId:c.id,reg:c.reg,note:`Создана претензия ${c.reg} — ${ME.name}`});assigned=true;}
+ else{
+  const D=diffClaim(o,c);
+  D.forEach(([f,a,b])=>audit('update',{claimId:c.id,reg:c.reg,field:f,old:a,new:b}));
+  const i=DB.claims.findIndex(x=>x.id===c.id);DB.claims[i]=c;
+  assigned=o.emp!==c.emp;
+ }
+ if(assigned&&DB.settings.events.assigned.on){const key=`assigned|${c.id}|${c.emp}|${c.version}`;DB.notifKeys.push(key);dispatch('assigned',c,[c.emp],CARD.isNew?'новая претензия':'сменился исполнитель');}
+ writeDB();
+ const wasNew=CARD.isNew;closeModal();runNotifications();renderContent();updateBell();
+ toast(wasNew?`Претензия ${c.reg} создана`:`Претензия ${c.reg} сохранена`);
+}
+
+/* =================== Журнал =================== */
+function auditTable(A,withClaim=true){
+ const lim=500;
+ return `<div class="tbl-wrap" style="max-height:65vh"><table class="tbl"><thead><tr><th>Дата и время</th><th>Сотрудник</th><th>Действие</th>${withClaim?'<th>№ претензии</th>':''}<th>Поле</th><th>Было</th><th>Стало</th></tr></thead><tbody>
+ ${A.length?A.slice(0,lim).map(a=>`<tr ${withClaim&&a.claimId?`class="click" data-a="openClaim" data-id="${a.claimId}"`:''}><td>${fmtDT(a.ts)}</td><td>${esc(a.actorName)}${a.login?` <span class="mut small">${esc(a.login)}</span>`:''}</td><td>${esc(ACTIONS[a.action]||a.action)}</td>${withClaim?`<td>${esc(a.reg)}</td>`:''}<td class="wrap">${esc(a.field||a.note)}</td><td class="wrap">${esc(a.old)}</td><td class="wrap">${esc(a.new)}${a.field&&a.note?`<br><span class="small mut">${esc(a.note)}</span>`:''}</td></tr>`).join(''):`<tr><td colspan="7" class="mut" style="text-align:center;padding:20px">Записей нет</td></tr>`}
+ </tbody></table></div>${A.length>lim?`<p class="small mut">Показаны последние ${lim} из ${A.length}. Полный список — в экспорте.</p>`:''}`;
+}
+function journalList(){
+ const j=UI.j,q=j.q.trim().toLowerCase();
+ return DB.audit.filter(a=>(!j.emp||a.actor===j.emp)&&(!j.from||a.ts.slice(0,10)>=j.from)&&(!j.to||a.ts.slice(0,10)<=j.to)&&(!j.action||a.action===j.action)&&(!q||(a.reg||'').toLowerCase().includes(q)||(a.field||'').toLowerCase().includes(q))).sort((a,b)=>a.ts<b.ts?1:-1);
+}
+function notifList(){
+ const j=UI.j,q=j.q.trim().toLowerCase();
+ return DB.notifications.filter(n=>(!j.emp||n.emp===j.emp)&&(!j.from||n.ts.slice(0,10)>=j.from)&&(!j.to||n.ts.slice(0,10)<=j.to)&&(!q||(n.reg||'').toLowerCase().includes(q))).sort((a,b)=>a.ts<b.ts?1:-1);
+}
+function renderJournal(el){
+ const j=UI.j,emps=[['system','Система'],...DB.employees.map(e=>[e.id,e.name])];
+ const filters=`<div class="filters" style="margin-bottom:12px">
+  <label>Сотрудник<select data-j="emp">${opts(emps,j.emp,'Все')}</select></label>
+  <label>С<input type="date" data-j="from" value="${j.from}"></label><label>По<input type="date" data-j="to" value="${j.to}"></label>
+  ${j.sub==='audit'?`<label>Тип действия<select data-j="action">${opts(Object.entries(ACTIONS),j.action,'Все')}</select></label>`:''}
+  <label>№ претензии / поле<input type="search" data-j="q" value="${esc(j.q)}" placeholder="П-2026-…"></label>
+  <span class="spacer"></span>${can('export')?`<button class="btn sm" data-a="exportJournal">⬇ Экспорт в Excel</button>`:''}</div>`;
+ let body;
+ if(j.sub==='audit')body=auditTable(journalList());
+ else{const N=notifList();body=`<div class="tbl-wrap" style="max-height:65vh"><table class="tbl"><thead><tr><th>Время</th><th>Получатель</th><th>Канал</th><th>Событие</th><th>№ претензии</th><th>Статус</th><th>Текст</th></tr></thead><tbody>
+  ${N.length?N.slice(0,500).map(n=>`<tr ${n.claimId?`class="click" data-a="openClaim" data-id="${n.claimId}"`:''}><td>${fmtDT(n.ts)}</td><td>${esc(empName(n.emp))}</td><td>${CHANNELS[n.channel]}</td><td class="wrap">${esc(EVENTS[n.event]?EVENTS[n.event].t:n.event)}</td><td>${esc(n.reg)}</td><td class="${/ошибка/.test(n.status)?'red':'green'}">${esc(n.status)}</td><td class="wrap small">${esc(n.text)}</td></tr>`).join(''):'<tr><td colspan="7" class="mut" style="text-align:center;padding:20px">Уведомлений нет</td></tr>'}
+  </tbody></table></div>`;}
+ el.innerHTML=`<div class="card"><div class="subtabs"><button class="${j.sub==='audit'?'on':''}" data-a="jsub" data-v="audit">Журнал изменений</button><button class="${j.sub==='notif'?'on':''}" data-a="jsub" data-v="notif">Журнал уведомлений</button></div>${filters}${body}<p class="small mut">Записи журнала нельзя изменить или удалить через интерфейс.</p></div>`;
+}
+
+/* =================== Импорт =================== */
+const IMP_FIELDS=[['reg','Регистрационный № претензии',0,''],['date','Дата претензии',1,'date'],['emp','Исполнитель (ФИО)',1,''],['cpName','Контрагент',1,''],['bin','БИН контрагента',1,''],['contractNo','№ договора',1,''],['contractDate','Дата договора',0,'date'],['contractAmount','Сумма договора, ₸',0,'num'],['from','Период пени — с',1,'date'],['to','Период пени — по',1,'date'],['basis','Основание / предмет',0,''],['penalty','Сумма пени по претензии, ₸',1,'num'],['due','Срок добровольной оплаты',0,'date'],['note','Примечание',0,''],
+ ['filed','Направлен иск в суд (да/нет)',0,'bool'],['filedDate','Дата подачи иска',0,'date'],['court','Наименование суда',0,''],['caseNo','№ дела',0,''],['claimAmount','Сумма иска, ₸',0,'num'],['fee','Госпошлина, ₸',0,'num'],['hearing','Дата заседания',0,'date'],['result','Решение суда',0,''],['decisionDate','Дата решения суда',0,'date'],['effectiveDate','Дата вступления в силу',0,'date'],['awarded','Сумма, присуждённая судом, ₸',0,'num'],
+ ['writNo','№ исполнительного листа',0,''],['writDate','Дата исполнительного листа',0,'date'],['bailiff','ЧСИ',0,''],['transferDate','Дата передачи ЧСИ',0,'date'],['procNo','№ исполнительного производства',0,'']];
+const PAY_HDR=['№ претензии','Дата оплаты','Сумма, ₸','№ платёжного документа','Примечание'];
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-zа-яё0-9]/g,'');
+function parseDateAny(v){
+ if(v==null||v==='')return '';
+ if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+pad(v.getMonth()+1)+'-'+pad(v.getDate());
+ if(typeof v==='number'){const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);return toS(d);}
+ const s=String(v).trim();let m=/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/.exec(s);if(m)return `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+ m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);if(m)return `${m[1]}-${m[2]}-${m[3]}`;return null;
+}
+function parseResult(v){const s=String(v||'').toLowerCase();if(!s)return '';if(s.includes('отозв'))return 'withdrawn';if(s.includes('отказ')||s.startsWith('не удовл'))return 'rejected';if(s.includes('частич'))return 'satisfied_partial';if(s.includes('полност')||s.includes('удовлетвор'))return 'satisfied_full';if(s.includes('рассмотр'))return 'pending';return null;}
+function renderImport(el){
+ const hist=DB.imports.slice().sort((a,b)=>a.at<b.at?1:-1);
+ let step='';
+ if(!IMP)step=`<div class="steps"><span class="on">1. Файл</span><span>2. Сопоставление колонок</span><span>3. Проверка</span><span>4. Итог</span></div>
+  <div class="info">Скачайте шаблон, заполните его накопленными претензиями (оплаты и поступления по решениям — на отдельных листах, связь по № претензии) или загрузите свой файл — колонки можно сопоставить на следующем шаге.</div>
+  <div class="toolbar"><button class="btn" data-a="impTemplate">⬇ Скачать шаблон .xlsx</button><label class="btn pri">Выбрать файл Excel…<input type="file" id="imp-file" accept=".xlsx,.xls,.csv" hidden></label></div>`;
+ else if(IMP.stage==='map'){
+  const cols=IMP.headers.map((h,i)=>[i,h||('Колонка '+(i+1))]);
+  step=`<div class="steps"><span>1. Файл</span><span class="on">2. Сопоставление колонок</span><span>3. Проверка</span><span>4. Итог</span></div>
+  <p>Файл: <b>${esc(IMP.fileName)}</b> · лист <select data-imp="sheet">${opts(IMP.wb.SheetNames.map(n=>[n,n]),IMP.sheet)}</select> · строк данных: <b>${IMP.rows.length}</b></p>
+  <div class="tbl-wrap" style="max-height:55vh"><table class="tbl"><thead><tr><th>Поле реестра</th><th>Колонка файла</th><th>Пример значения</th></tr></thead><tbody>
+  ${IMP_FIELDS.map(([k,l,req])=>{const ci=IMP.mapping[k];return `<tr><td>${esc(l)}${req?' <span class="red">*</span>':''}</td><td><select data-map="${k}" style="min-width:220px">${opts(cols,ci==null?'':ci,'— не загружать —')}</select></td><td class="mut">${ci!=null&&IMP.rows[0]?esc(fmtCell(IMP.rows[0][ci])):''}</td></tr>`;}).join('')}
+  </tbody></table></div>
+  <p class="small mut">Листы с оплатами и поступлениями: ${IMP.paySheet?`«${esc(IMP.paySheet)}»`:'не найдены'} / ${IMP.enfSheet?`«${esc(IMP.enfSheet)}»`:'не найдены'} (колонки: ${PAY_HDR.join(', ')}).</p>
+  <div class="toolbar"><label class="chk" style="padding:0"><input type="checkbox" id="imp-save-map" checked> сохранить сопоставление для следующих загрузок</label><span class="spacer"></span><button class="btn" data-a="impCancel">Отмена</button><button class="btn pri" data-a="impCheck">Проверить данные →</button></div>`;
+ }else if(IMP.stage==='preview'){
+  const P=IMP.preview,ok=P.filter(p=>!p.errors.length),bad=P.filter(p=>p.errors.length),dup=P.filter(p=>p.dup&&!p.errors.length);
+  step=`<div class="steps"><span>1. Файл</span><span>2. Сопоставление колонок</span><span class="on">3. Проверка</span><span>4. Итог</span></div>
+  <div class="toolbar" style="margin-bottom:10px"><span>Всего строк: <b>${P.length}</b></span><span class="green">без ошибок: <b>${ok.length}</b></span><span class="red">с ошибками: <b>${bad.length}</b></span><span class="amber">дубли: <b>${dup.length}</b></span>
+   <span class="spacer"></span>${dup.length?`Для всех дублей: <button class="btn sm" data-a="impDupAll" data-v="skip">пропустить</button><button class="btn sm" data-a="impDupAll" data-v="update">обновить</button><button class="btn sm" data-a="impDupAll" data-v="new">создать новую</button>`:''}</div>
+  <div class="tbl-wrap" style="max-height:55vh"><table class="tbl"><thead><tr><th>Строка</th><th>№ претензии</th><th>Дата</th><th>Контрагент</th><th>БИН</th><th>№ договора</th><th class="num">Сумма пени</th><th>Исполнитель</th><th>Проверка</th><th>Действие</th></tr></thead><tbody>
+  ${P.map((p,i)=>`<tr class="${p.errors.length?'overdue':p.dup?'lim':''}"><td>${p.row}</td><td>${esc(p.o.reg||'(авто)')}</td><td>${fmtD(p.o.date)}</td><td class="wrap">${esc(p.o.cpName)}</td><td>${esc(p.o.bin)}</td><td>${esc(p.o.contractNo)}</td><td class="num">${p.o.penalty!=null?fmtN(p.o.penalty):''}</td><td>${esc(p.empLabel)}</td>
+   <td class="wrap">${p.errors.length?`<span class="red">${p.errors.map(esc).join('; ')}</span>`:p.dup?`<span class="amber">дубль: ${esc(p.dupReg)} (${p.dupBy})</span>`:'<span class="green">OK</span>'}</td>
+   <td>${p.errors.length?'пропуск':p.dup?`<select data-dup="${i}">${opts([['skip','пропустить'],['update','обновить'],['new','создать новую']],p.action)}</select>`:'создать'}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p class="small mut">Оплат к загрузке: ${IMP.pays.length} · поступлений по решениям: ${IMP.epays.length}. Загрузка выполняется одной операцией; при критической ошибке всё откатывается.</p>
+  <div class="toolbar"><button class="btn" data-a="impBack">← Назад к сопоставлению</button>${bad.length?`<button class="btn" data-a="impErrors">⬇ Файл с ошибками</button>`:''}<span class="spacer"></span><button class="btn" data-a="impCancel">Отмена</button><button class="btn pri" data-a="impCommit" ${ok.length?'':'disabled'}>Загрузить ${ok.length} строк</button></div>`;
+ }else if(IMP.stage==='done'){
+  const r=IMP.result;
+  step=`<div class="steps"><span>1. Файл</span><span>2. Сопоставление колонок</span><span>3. Проверка</span><span class="on">4. Итог</span></div>
+  <div class="info" style="font-size:14px">Импорт завершён: загружено <b>${r.created}</b>, обновлено <b>${r.updated}</b>, пропущено <b>${r.skipped}</b>. Оплат добавлено: ${r.pays}, поступлений: ${r.epays}.</div>
+  <div class="toolbar">${IMP.preview.some(p=>p.errors.length)?`<button class="btn" data-a="impErrors">⬇ Файл с ошибками</button>`:''}<button class="btn pri" data-a="impCancel">Готово</button></div>`;
+ }
+ el.innerHTML=`<div class="card"><h2>Импорт претензий из Excel</h2>${step}</div>
+ <div class="card"><h3 style="margin-bottom:10px">История загрузок</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Дата</th><th>Файл</th><th>Сотрудник</th><th class="num">Всего</th><th class="num">Создано</th><th class="num">Обновлено</th><th class="num">Пропущено</th><th>Статус</th><th></th></tr></thead><tbody>
+ ${hist.length?hist.map(h=>{const canRb=!h.rolledBack&&(Date.now()-new Date(h.at))<864e5;return `<tr><td>${fmtDT(h.at)}</td><td>${esc(h.fileName)}</td><td>${esc(empName(h.by))}</td><td class="num">${h.total}</td><td class="num">${h.created}</td><td class="num">${h.updated}</td><td class="num">${h.skipped}</td><td>${h.rolledBack?'<span class="red">отменён</span>':'выполнен'}</td><td>${canRb?`<button class="btn sm danger" data-a="impRollback" data-id="${h.id}">Отменить импорт</button>`:''}</td></tr>`;}).join(''):'<tr><td colspan="9" class="mut" style="text-align:center;padding:16px">Загрузок ещё не было</td></tr>'}
+ </tbody></table></div><p class="small mut">Импорт можно отменить целиком в течение 24 часов: созданные им претензии будут помечены удалёнными.</p></div>`;
+}
+function fmtCell(v){if(v instanceof Date)return fmtD(parseDateAny(v));return v==null?'':String(v);}
+function loadImpSheet(){
+ const ws=IMP.wb.Sheets[IMP.sheet];const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+ IMP.headers=(aoa[0]||[]).map(h=>String(h).trim());
+ IMP.rows=aoa.slice(1).filter(r=>r.some(v=>v!==''&&v!=null));
+ const saved=DB.settings.importMapping||{};IMP.mapping={};
+ IMP_FIELDS.forEach(([k,l])=>{let i=IMP.headers.findIndex(h=>norm(h)===norm(l));if(i<0&&saved[k]){i=IMP.headers.findIndex(h=>norm(h)===norm(saved[k]));}if(i<0){const nl=norm(l).slice(0,12);i=IMP.headers.findIndex(h=>norm(h).startsWith(nl)&&nl.length>5);}IMP.mapping[k]=i>=0?i:null;});
+}
+function readPaySheet(name){
+ if(!name)return [];const aoa=XLSX.utils.sheet_to_json(IMP.wb.Sheets[name],{header:1,raw:true,defval:''});const H=(aoa[0]||[]).map(norm);
+ const f=k=>H.findIndex(h=>h.includes(k));const ir=f('претенз'),id=f('дата'),ia=f('сумм'),idoc=f('документ'),inote=f('примеч');
+ return aoa.slice(1).filter(r=>r.some(v=>v!=='')).map(r=>({reg:String(r[ir]??'').trim(),date:parseDateAny(r[id]),amount:parseNum(r[ia]),doc:idoc>=0?String(r[idoc]??''):'',note:inote>=0?String(r[inote]??''):''})).filter(p=>p.reg&&p.date&&p.amount>0);
+}
+function impCheck(){
+ if($('#imp-save-map')&&$('#imp-save-map').checked){const m={};IMP_FIELDS.forEach(([k])=>{if(IMP.mapping[k]!=null)m[k]=IMP.headers[IMP.mapping[k]];});tx(db=>{db.settings.importMapping=m;});}
+ const regsInFile=new Set();
+ IMP.preview=IMP.rows.map((r,idx)=>{
+  const o={},errors=[];
+  IMP_FIELDS.forEach(([k,l,req,t])=>{const ci=IMP.mapping[k];let v=ci==null?'':r[ci];
+   if(t==='date'){const d=parseDateAny(v);if(d===null){errors.push(`${l}: неверная дата`);v='';}else v=d;}
+   else if(t==='num'){if(v===''||v==null)v=null;else{const n=parseNum(v);if(n==null){errors.push(`${l}: не число`);}else if(n<0)errors.push(`${l}: отрицательная сумма`);v=n;}}
+   else if(t==='bool')v=/^(да|yes|1|true|\+)$/i.test(String(v).trim());
+   else v=String(v??'').trim();
+   o[k]=v;if(req&&(v===''||v==null))errors.push(`не заполнено «${l}»`);});
+  if(o.bin&&!/^\d{12}$/.test(o.bin.replace(/\s/g,'')))errors.push('БИН — не 12 цифр');else o.bin=o.bin.replace(/\s/g,'');
+  if(o.from&&o.to&&o.to<o.from)errors.push('период: «по» раньше «с»');
+  const e=DB.employees.find(x=>x.name.toLowerCase()===String(o.emp).toLowerCase());
+  if(o.emp&&!e)errors.push(`исполнитель «${o.emp}» не найден в справочнике`);
+  if(o.result){const pr=parseResult(o.result);if(pr===null)errors.push('решение суда не распознано');o.result=pr;}
+  if(o.reg){if(regsInFile.has(o.reg))errors.push('№ претензии повторяется в файле');regsInFile.add(o.reg);}
+  let dup=null,dupBy='';
+  if(o.reg){dup=DB.claims.find(c=>!c.deleted&&c.reg===o.reg);if(dup)dupBy='по № претензии';}
+  if(!dup&&o.bin&&o.contractNo){dup=DB.claims.find(c=>!c.deleted&&c.bin===o.bin&&c.contractNo===o.contractNo&&c.from===o.from&&c.to===o.to);if(dup)dupBy='БИН + договор + период';}
+  return{row:idx+2,raw:r,o,errors,empId:e?e.id:null,empLabel:e?e.name:o.emp,dup:dup?dup.id:null,dupReg:dup?dup.reg:'',dupBy,action:'skip'};
+ });
+ IMP.pays=readPaySheet(IMP.paySheet);IMP.epays=readPaySheet(IMP.enfSheet);
+ IMP.stage='preview';renderContent();
+}
+function impCommit(){
+ try{
+  let res;
+  tx(db=>{
+   const imp={id:uid(),fileName:IMP.fileName,total:IMP.preview.length,created:0,updated:0,skipped:0,by:ME.id,at:nowISO(),rolledBack:false};
+   const regMap={},now=nowISO();
+   IMP.preview.forEach(p=>{
+    if(p.errors.length||(p.dup&&p.action==='skip')){imp.skipped++;return;}
+    const o=p.o;let c;
+    const upd=p.dup&&p.action==='update';
+    if(upd)c=db.claims.find(x=>x.id===p.dup);
+    else{c=blankClaim();c.importId=imp.id;c.createdAt=now;c.createdBy=ME.id;c.version=0;}
+    const before=clone(c);
+    ['date','cpName','bin','contractNo','contractDate','contractAmount','from','to','basis','penalty','due','note'].forEach(k=>{if(o[k]!==''&&o[k]!=null)c[k]=o[k];});
+    c.emp=p.empId;
+    if(!c.due&&c.date)c.due=addDays(c.date,+db.settings.dueDays||10);
+    if(o.filed||o.filedDate||o.caseNo){c.court.filed=true;[['filedDate','filedDate'],['court','court'],['caseNo','caseNo'],['claimAmount','amount'],['fee','fee'],['decisionDate','decisionDate'],['effectiveDate','effectiveDate'],['awarded','awarded']].forEach(([a,b])=>{if(o[a]!==''&&o[a]!=null)c.court[b]=o[a];});if(o.hearing)c.court.hearing=o.hearing+'T10:00';c.court.result=o.result||c.court.result||'pending';}
+    [['writNo','writNo'],['writDate','writDate'],['bailiff','bailiff'],['transferDate','transferDate'],['procNo','procNo']].forEach(([a,b])=>{if(o[a])c.enf[b]=o[a];});
+    let cp=db.counterparties.find(x=>x.name.toLowerCase()===c.cpName.toLowerCase());if(!cp){cp={id:uid(),name:c.cpName,bin:c.bin};db.counterparties.push(cp);}c.cpId=cp.id;
+    let ct=db.contracts.find(x=>x.cpId===cp.id&&x.number===c.contractNo);if(!ct){ct={id:uid(),cpId:cp.id,number:c.contractNo,date:c.contractDate||'',amount:c.contractAmount,method:db.settings.defaultMethod,rate:db.settings.defaultRate,capPct:db.settings.defaultCapPct};db.contracts.push(ct);}c.contractId=ct.id;
+    c.updatedAt=now;c.updatedBy=ME.id;c.version=(c.version||0)+1;
+    if(upd){imp.updated++;diffClaim(before,c).forEach(([f,a,b])=>audit('update',{claimId:c.id,reg:c.reg,field:f,old:a,new:b,note:'импорт '+IMP.fileName}));}
+    else{c.reg=o.reg&&!db.claims.some(x=>x.reg===o.reg&&!x.deleted)?o.reg:nextReg(db,c.date);db.claims.push(c);imp.created++;audit('create',{claimId:c.id,reg:c.reg,note:`Создана импортом (${IMP.fileName})`});}
+    regMap[o.reg||c.reg]=c;regMap[c.reg]=c;
+   });
+   let np=0,ne=0;
+   IMP.pays.forEach(p=>{const c=regMap[p.reg];if(!c)return;c.payments.push({id:uid(),date:p.date,amount:p.amount,doc:p.doc,note:p.note,source:'импорт'});np++;});
+   IMP.epays.forEach(p=>{const c=regMap[p.reg];if(!c)return;c.enf.payments.push({id:uid(),date:p.date,amount:p.amount,doc:p.doc,note:p.note,source:'импорт'});ne++;});
+   db.imports.push(imp);
+   audit('import',{note:`Импорт: ${imp.created+imp.updated} записей, файл ${IMP.fileName}, сотрудник ${ME.name}`,field:'Импорт',new:`создано ${imp.created}, обновлено ${imp.updated}, пропущено ${imp.skipped}`});
+   res={...imp,pays:np,epays:ne};
+  });
+  IMP.result=res;IMP.stage='done';runNotifications();renderContent();toast('Импорт выполнен');
+ }catch(e){console.error(e);toast('Критическая ошибка импорта — изменения отменены: '+e.message,true);}
+}
+
+/* =================== Справочники и настройки =================== */
+function sIn(path,val,o={}){const t=o.t?`data-t="${o.t}"`:'';if(o.opts)return `<select data-s="${path}" ${t}>${opts(o.opts,val)}</select>`;if(o.type==='checkbox')return `<input type="checkbox" data-s="${path}" data-t="bool" ${val?'checked':''}>`;if(o.type==='textarea')return `<textarea data-s="${path}" rows="4" style="width:100%">${esc(val)}</textarea>`;return `<input type="${o.type||'text'}" data-s="${path}" ${t} value="${esc(val??'')}" ${o.step?`step="${o.step}"`:''} ${o.w?`style="width:${o.w}"`:''}>`;}
+function dIn(dir,id,k,val,o={}){const t=o.t?`data-t="${o.t}"`:'';const a=`data-dir="${dir}" data-id="${id}" data-k="${k}" ${t}`;if(o.opts)return `<select ${a}>${opts(o.opts,val)}</select>`;if(o.type==='checkbox')return `<input type="checkbox" ${a} data-t="bool" ${val?'checked':''}>`;return `<input type="${o.type||'text'}" ${a} value="${esc(val??'')}" ${o.step?`step="${o.step}"`:''} ${o.max?`maxlength="${o.max}"`:''}>`;}
+function renderSettings(el){
+ const S=DB.settings,sub=UI.s;
+ const subs=[['employees','Сотрудники'],['cps','Контрагенты и договоры'],['rates','Ставки'],['notif','Уведомления'],['integr','Интеграции'],['general','Общие параметры'],['perms','Права ролей'],['data','Данные']];
+ let b='';
+ if(sub==='employees')b=`<div class="toolbar" style="margin-bottom:10px"><span class="mut small">ФИО, должность и e-mail в рабочей версии подтягиваются из AD. При уходе сотрудника отметьте «неактивен» — история сохраняется.</span><span class="spacer"></span><button class="btn pri sm" data-a="empAdd">+ Сотрудник</button></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>ФИО</th><th>Должность</th><th>Логин AD</th><th>E-mail</th><th>Роль</th><th>Мессенджер</th><th>Активен</th></tr></thead><tbody>
+  ${DB.employees.map(e=>`<tr><td>${dIn('employees',e.id,'name',e.name)}</td><td>${dIn('employees',e.id,'position',e.position)}</td><td>${dIn('employees',e.id,'login',e.login)}</td><td>${dIn('employees',e.id,'email',e.email)}</td><td>${dIn('employees',e.id,'role',e.role,{opts:Object.entries(ROLES)})}</td><td>${e.messengerId?esc(e.messengerId):'<span class="mut">не привязан</span>'}</td><td style="text-align:center">${dIn('employees',e.id,'active',e.active,{type:'checkbox'})}</td></tr>`).join('')}</tbody></table></div>`;
+ if(sub==='cps')b=`<div class="toolbar" style="margin-bottom:10px"><h3>Контрагенты</h3><span class="spacer"></span><button class="btn pri sm" data-a="cpAdd">+ Контрагент</button></div>
+  <div class="tbl-wrap" style="max-height:40vh"><table class="tbl"><thead><tr><th>Наименование</th><th>БИН</th><th class="num">Договоров</th><th class="num">Претензий</th></tr></thead><tbody>
+  ${DB.counterparties.map(c=>`<tr><td>${dIn('counterparties',c.id,'name',c.name)}</td><td>${dIn('counterparties',c.id,'bin',c.bin,{max:12})}</td><td class="num">${DB.contracts.filter(x=>x.cpId===c.id).length}</td><td class="num">${DB.claims.filter(x=>x.cpId===c.id&&!x.deleted).length}</td></tr>`).join('')}</tbody></table></div>
+  <div class="toolbar" style="margin:16px 0 10px"><h3>Договоры</h3><span class="spacer"></span><button class="btn pri sm" data-a="ctAdd">+ Договор</button></div>
+  <div class="tbl-wrap" style="max-height:45vh"><table class="tbl"><thead><tr><th>Контрагент</th><th>№ договора</th><th>Дата</th><th>Сумма, ₸</th><th>Метод пени</th><th>Ставка</th><th>Лимит, %</th></tr></thead><tbody>
+  ${DB.contracts.map(c=>`<tr><td>${dIn('contracts',c.id,'cpId',c.cpId,{opts:DB.counterparties.map(x=>[x.id,x.name])})}</td><td>${dIn('contracts',c.id,'number',c.number)}</td><td>${dIn('contracts',c.id,'date',c.date,{type:'date'})}</td><td>${dIn('contracts',c.id,'amount',c.amount,{type:'number',t:'num',step:'0.01'})}</td><td>${dIn('contracts',c.id,'method',c.method,{opts:Object.entries(METHODS)})}</td><td>${dIn('contracts',c.id,'rate',c.rate,{type:'number',t:'num',step:'0.001'})}</td><td>${dIn('contracts',c.id,'capPct',c.capPct,{type:'number',t:'num',step:'0.01'})}</td></tr>`).join('')}</tbody></table></div>`;
+ if(sub==='rates')b=`<div class="grid" style="margin-bottom:16px">
+   <label class="f"><span>Метод по умолчанию</span>${sIn('settings.defaultMethod',S.defaultMethod,{opts:Object.entries(METHODS)})}</label>
+   <label class="f"><span>Ставка неустойки по умолчанию</span>${sIn('settings.defaultRate',S.defaultRate,{type:'number',t:'num',step:'0.001'})}</label>
+   <label class="f"><span>Лимит неустойки по умолчанию, %</span>${sIn('settings.defaultCapPct',S.defaultCapPct,{type:'number',t:'num',step:'0.01'})}</label></div>
+  <div class="toolbar" style="margin-bottom:10px"><h3>Базовая ставка НБ РК</h3><span class="mut small">примерные значения — проверьте по официальным данным</span><span class="spacer"></span><button class="btn pri sm" data-a="rateAdd">+ Ставка</button></div>
+  <div class="tbl-wrap" style="max-width:560px"><table class="tbl"><thead><tr><th>Действует с</th><th>Ставка, % годовых</th><th></th></tr></thead><tbody>
+  ${DB.baseRates.slice().sort((a,b)=>a.from<b.from?1:-1).map(r=>`<tr><td>${dIn('baseRates',r.id,'from',r.from,{type:'date'})}</td><td>${dIn('baseRates',r.id,'rate',r.rate,{type:'number',t:'num',step:'0.01'})}</td><td><button class="x" data-a="rateDel" data-id="${r.id}">✕</button></td></tr>`).join('')}</tbody></table></div>`;
+ if(sub==='notif')b=`<div class="toolbar" style="margin-bottom:10px"><span class="mut small">Каждый сотрудник в профиле выбирает, какие события и по каким каналам получать.</span><span class="spacer"></span><button class="btn sm" data-a="runNotif">Запустить проверку сроков сейчас</button></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Вкл.</th><th>Событие</th><th>Кому</th><th>Когда</th><th>Параметр N</th></tr></thead><tbody>
+  ${Object.entries(EVENTS).map(([k,v])=>`<tr><td style="text-align:center">${sIn(`settings.events.${k}.on`,S.events[k].on,{type:'checkbox'})}</td><td class="wrap">${v.t}</td><td class="wrap">${v.to}</td><td class="wrap">${v.pl||'сразу'}</td><td>${v.pl.includes('N')?sIn(`settings.events.${k}.p`,S.events[k].p,{w:'110px'}):''}</td></tr>`).join('')}</tbody></table></div>
+  <div class="grid" style="margin-top:14px"><label class="f full"><span>Шаблон письма (переменные: {event} {reg} {cp} {amount} {date} {link})</span>${sIn('settings.templates.email',S.templates.email,{type:'textarea'})}</label>
+  <label class="f full"><span>Шаблон сообщения в мессенджер (только №, контрагент, сумма и ссылка; файлы не отправляются)</span>${sIn('settings.templates.msg',S.templates.msg,{type:'textarea'})}</label></div>`;
+ if(sub==='integr'){const I=S.integrations;b=`<div class="warn">Демо-режим: подключения не выполняются, параметры только сохраняются. В рабочей версии пароли и токены хранятся на сервере в зашифрованном виде.</div>
+  <div class="box"><div class="box-h"><b>Active Directory (LDAP/LDAPS)</b><span class="spacer"></span><button class="btn sm" data-a="testConn" data-v="AD">Проверить подключение</button></div><div class="grid">
+   <label class="f"><span>Сервер</span>${sIn('settings.integrations.ad.url',I.ad.url)}</label><label class="f"><span>Base DN</span>${sIn('settings.integrations.ad.baseDN',I.ad.baseDN)}</label><label class="f"><span>Группа доступа</span>${sIn('settings.integrations.ad.group',I.ad.group)}</label><label class="f"><span>Единый вход (SSO)</span>${sIn('settings.integrations.ad.sso',I.ad.sso,{opts:[['нет','нет'],['Kerberos','Kerberos'],['SAML','SAML'],['OpenID Connect','OpenID Connect']]})}</label></div></div>
+  <div class="box"><div class="box-h"><b>Почта (SMTP / Exchange)</b><span class="spacer"></span><button class="btn sm" data-a="testConn" data-v="почте">Проверить подключение</button></div><div class="grid">
+   <label class="f"><span>Сервер</span>${sIn('settings.integrations.mail.host',I.mail.host)}</label><label class="f"><span>Порт</span>${sIn('settings.integrations.mail.port',I.mail.port)}</label><label class="f"><span>Отправитель</span>${sIn('settings.integrations.mail.from',I.mail.from)}</label><label class="chk">${sIn('settings.integrations.mail.enabled',I.mail.enabled,{type:'checkbox'})} считать почту настроенной (демо)</label></div></div>
+  <div class="box"><div class="box-h"><b>Мессенджер</b><span class="spacer"></span><button class="btn sm" data-a="testConn" data-v="мессенджеру">Проверить подключение</button></div><div class="grid">
+   <label class="f"><span>Тип</span>${sIn('settings.integrations.messenger.type',I.messenger.type,{opts:[['Telegram','Telegram-бот'],['MS Teams','MS Teams'],['Bitrix24','Bitrix24']]})}</label><label class="f"><span>Токен бота / вебхук</span>${sIn('settings.integrations.messenger.token',I.messenger.token,{type:'password'})}</label><label class="chk">${sIn('settings.integrations.messenger.enabled',I.messenger.enabled,{type:'checkbox'})} считать бота настроенным (демо)</label></div></div>`;}
+ if(sub==='general')b=`<div class="grid">
+  <label class="f"><span>Срок добровольной оплаты по умолчанию, дней</span>${sIn('settings.dueDays',S.dueDays,{type:'number',t:'num'})}</label>
+  <label class="f"><span>Срок исковой давности, лет (подтверждается юристами)</span>${sIn('settings.limitationYears',S.limitationYears,{type:'number',t:'num'})}</label>
+  <label class="f full"><span>Правило подсчёта дней просрочки</span>${sIn('settings.dayRule',S.dayRule,{opts:[['next_incl','со дня, следующего за сроком исполнения, по день исполнения включительно'],['next_excl','со дня, следующего за сроком исполнения, без дня исполнения']]})}</label></div>`;
+ if(sub==='perms')b=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Действие</th>${Object.values(ROLES).map(r=>`<th style="text-align:center">${r}</th>`).join('')}</tr></thead><tbody>
+  ${Object.entries(PERMS).map(([p,l])=>`<tr><td class="wrap">${l}</td>${Object.keys(ROLES).map(r=>`<td style="text-align:center">${p==='admin'&&r==='admin'?'✓':sIn(`settings.perms.${p}.${r}`,S.perms[p][r],{type:'checkbox'})}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <p class="small mut">Роль «Наблюдатель» (только просмотр) можно выдать сотрудникам других подразделений. В рабочей версии права проверяются на сервере.</p>`;
+ if(sub==='data')b=`<div class="info">Все данные этой демо-версии хранятся в браузере (localStorage, файлы — в IndexedDB). В рабочей версии — общая БД PostgreSQL на внутреннем сервере.</div>
+  <div class="toolbar"><button class="btn" data-a="backup">⬇ Резервная копия (JSON)</button><label class="btn">⬆ Восстановить из копии…<input type="file" id="restore-file" accept=".json" hidden></label><button class="btn danger" data-a="resetDemo">Сбросить к демо-данным</button><button class="btn danger" data-a="clearAll">Очистить реестр полностью</button></div>
+  <p class="small mut">Претензий: ${DB.claims.length} · записей журнала: ${DB.audit.length} · уведомлений: ${DB.notifications.length}</p>`;
+ el.innerHTML=`<div class="card"><div class="subtabs">${subs.map(s=>`<button class="${sub===s[0]?'on':''}" data-a="ssub" data-v="${s[0]}">${s[1]}</button>`).join('')}</div>${b}<p class="small mut" style="margin-top:12px">Изменения сохраняются сразу и записываются в журнал.</p></div>`;
+}
+function onSettingChange(el){
+ let v=el.type==='checkbox'?el.checked:el.value;
+ if(el.dataset.t==='num')v=parseNum(v);
+ if(el.dataset.s){
+  const path=el.dataset.s;if(el.type==='checkbox'&&path.startsWith('settings.perms.'))v=v?1:0;
+  tx(db=>{const old=getP(db,path);setP(db,path,v);audit('settings',{field:path.replace('settings.',''),old:path.includes('token')?'***':String(old??''),new:path.includes('token')?'***':String(v??'')});});
+ }else if(el.dataset.dir){
+  const{dir,id,k}=el.dataset;
+  if(dir==='counterparties'&&k==='bin'&&!/^\d{12}$/.test(v)){toast('БИН должен состоять из 12 цифр',true);return;}
+  if(dir==='employees'&&k==='active'&&!v&&id===ME.id){toast('Нельзя отключить самого себя',true);el.checked=true;return;}
+  tx(db=>{const o=db[dir].find(x=>x.id===id);if(!o)return;const old=o[k];o[k]=v;audit('settings',{field:`${({employees:'Сотрудник',counterparties:'Контрагент',contracts:'Договор',baseRates:'Ставка НБ РК'})[dir]} «${o.name||o.number||o.from}» · ${k}`,old:String(old??''),new:String(v??'')});
+   if(dir==='counterparties'){db.claims.forEach(c=>{if(c.cpId===id){if(k==='name')c.cpName=v;if(k==='bin')c.bin=v;}});}});
+ }
+ toast('Сохранено');
+ if(el.dataset.dir==='employees'||(el.dataset.s||'').startsWith('settings.perms')){render();}
+}
+
+/* =================== Профиль =================== */
+function showProfile(){
+ const e=ME,pr=DB.prefs[e.id]||{};PROFILE=PROFILE||{code:null};
+ openModal(`<div class="modal-h"><h2>Профиль</h2><span class="spacer"></span><button class="x" data-a="closeModal">✕</button></div>
+ <div class="modal-b"><div class="grid"><label class="f"><span>ФИО</span><input disabled value="${esc(e.name)}"></label><label class="f"><span>Должность</span><input disabled value="${esc(e.position)}"></label><label class="f"><span>Логин AD</span><input disabled value="${esc(e.login)}"></label><label class="f"><span>E-mail</span><input disabled value="${esc(e.email)}"></label><label class="f"><span>Роль</span><input disabled value="${ROLES[e.role]}"></label></div>
+ <div class="sec">Мессенджер (${esc(DB.settings.integrations.messenger.type)})</div>
+ ${e.messengerId?`<p>Привязан: <b>${esc(e.messengerId)}</b> <button class="btn sm danger" data-a="msgUnbind">Отвязать</button></p>`:PROFILE.code?`<div class="info">Отправьте боту одноразовый код <b style="font-size:16px;letter-spacing:2px">${PROFILE.code}</b>, затем нажмите «Подтвердить».</div><button class="btn pri sm" data-a="msgConfirm">Подтвердить привязку (демо)</button>`:`<button class="btn sm" data-a="msgCode">Получить код привязки</button>`}
+ <div class="sec">Какие уведомления получать</div>
+ <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Событие</th>${Object.values(CHANNELS).map(c=>`<th style="text-align:center">${c}</th>`).join('')}</tr></thead><tbody>
+ ${Object.entries(EVENTS).filter(([k])=>k!=='summary'||e.role==='manager'||e.role==='admin').map(([k,v])=>`<tr><td class="wrap">${v.t}</td>${Object.keys(CHANNELS).map(ch=>`<td style="text-align:center"><input type="checkbox" data-pref="${k}.${ch}" ${(pr[k]?pr[k][ch]:true)?'checked':''}></td>`).join('')}</tr>`).join('')}
+ </tbody></table></div></div>
+ <div class="modal-f"><span class="spacer"></span><button class="btn" data-a="closeModal">Отмена</button><button class="btn pri" data-a="profileSave">Сохранить</button></div>`);
+}
+
+/* =================== Уведомления в шапке =================== */
+function myNotifs(){return DB.notifications.filter(n=>n.emp===(ME&&ME.id)&&n.channel==='site').sort((a,b)=>a.ts<b.ts?1:-1);}
+function updateBell(){
+ const b=$('#bell-n');if(!b||!ME)return;const n=myNotifs().filter(x=>!x.read).length;b.textContent=n?(n>99?'99+':n):'';
+ const dd=$('#bell-dd');if(!dd)return;
+ if(!UI.bell){dd.innerHTML='';return;}
+ const L=myNotifs().slice(0,40);
+ dd.innerHTML=`<div class="dd"><div class="dd-h"><b>Уведомления</b><button class="btn sm" data-a="bellReadAll">Прочитать все</button></div>${L.length?L.map(x=>`<div class="dd-i ${x.read?'':'unread'}" data-a="bellOpen" data-id="${x.id}">${esc(EVENTS[x.event]?EVENTS[x.event].t:x.event)}<small>${esc(x.text)}</small><small>${fmtDT(x.ts)}</small></div>`).join(''):'<div class="dd-i mut">Нет уведомлений</div>'}</div>`;
+}
+
+/* =================== Экспорт =================== */
+function xlsxExport(sheets,filename){
+ if(!window.XLSX){toast('Библиотека Excel не загрузилась (нужен интернет)',true);return;}
+ const wb=XLSX.utils.book_new();
+ sheets.forEach(({name,header,rows})=>{
+  const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
+  const money=header.map((h,i)=>/₸|сумм|оплачен|остаток|пеня|взыскан|госпошлин|у чси|база/i.test(h)?i:-1).filter(i=>i>=0);
+  const rg=XLSX.utils.decode_range(ws['!ref']);
+  for(let R=1;R<=rg.e.r;R++)money.forEach(C=>{const cell=ws[XLSX.utils.encode_cell({r:R,c:C})];if(cell&&cell.t==='n')cell.z='#,##0.00';});
+  ws['!cols']=header.map((h,i)=>({wch:Math.min(45,Math.max(10,String(h).length+2,...rows.slice(0,200).map(r=>String(r[i]??'').length+1)))}));
+  if(rows.length)ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:header.length-1}})};
+  ws['!views']=[{state:'frozen',ySplit:1}];
+  XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));
+ });
+ XLSX.writeFile(wb,filename);
+}
+function exportRegistry(){
+ const L=UI.showDeleted?DB.claims.filter(c=>c.deleted):filtered();
+ const H=['№ претензии','Дата претензии','Исполнитель','Контрагент','БИН','№ договора','Дата договора','Сумма договора, ₸','Период пени с','Период пени по','Основание','Сумма пени, ₸','Изменена вручную','Причина','Срок добровольной оплаты','Оплачено, ₸','Остаток, ₸','Статус оплаты','Иск в суд','Дата иска','Суд','№ дела','Сумма иска, ₸','Госпошлина, ₸','Дата заседания','Решение суда','Дата решения','Вступило в силу','Присуждено, ₸','№ исп. листа','Дата исп. листа','ЧСИ','Дата передачи ЧСИ','№ исп. производства','Взыскано по решению, ₸','Не взыскано (у ЧСИ), ₸','Статус взыскания','Общий статус','Примечание','Изменено','Кем изменено'];
+ const rows=L.map(c=>{const m=met(c),ct=c.court,e=c.enf;return[c.reg,fmtD(c.date),empName(c.emp),c.cpName,c.bin,c.contractNo,fmtD(c.contractDate),c.contractAmount==null?'':+c.contractAmount,fmtD(c.from),fmtD(c.to),c.basis,m.pen,c.penaltyManual?'да':'нет',c.manualReason||'',fmtD(c.due),m.paid,Math.max(0,m.rest),PAY_ST[m.pay],m.filed?'да':'нет',fmtD(ct.filedDate),ct.court||'',ct.caseNo||'',m.filed?+ct.amount||0:'',m.filed?+ct.fee||0:'',ct.hearing?fmtDT(ct.hearing):'',m.result?RESULTS[m.result]:'',fmtD(ct.decisionDate),fmtD(ct.effectiveDate),m.sat?m.awarded:'',e.writNo||'',fmtD(e.writDate),e.bailiff||'',fmtD(e.transferDate),e.procNo||'',m.sat?m.collected:'',m.sat?m.enfRest:'',m.enf?ENF_ST[m.enf]:'',STATUS[m.st].t,c.note||'',fmtDT(c.updatedAt),empName(c.updatedBy)];});
+ const P=[],EP=[];L.forEach(c=>{c.payments.forEach(p=>P.push([c.reg,c.cpName,fmtD(p.date),+p.amount,p.doc||'',p.note||'',p.source||'вручную']));(c.enf.payments||[]).forEach(p=>EP.push([c.reg,c.cpName,fmtD(p.date),+p.amount,p.doc||'',p.note||'',p.source||'вручную']));});
+ const ph=['№ претензии','Контрагент','Дата','Сумма, ₸','№ платёжного документа','Примечание','Источник'];
+ xlsxExport([{name:'Реестр',header:H,rows},{name:'Оплаты',header:ph,rows:P},{name:'Поступления по решениям',header:ph,rows:EP}],`Реестр_претензий_${periodLabel(L)}.xlsx`);
+}
+function exportSummary(){
+ const L=filtered(),M=L.map(c=>({c,m:met(c)})),g=fn=>M.filter(x=>fn(x.m));
+ const k=[['Претензий предъявлено',M.length,sum(M,x=>x.m.pen)],['Оплачено полностью',g(m=>m.pay==='full').length,sum(g(m=>m.pay==='full'),x=>x.m.paid)],['Оплачено частично (оплачено)',g(m=>m.pay==='partial').length,sum(g(m=>m.pay==='partial'),x=>x.m.paid)],['Оплачено частично (остаток)','',sum(g(m=>m.pay==='partial'),x=>x.m.rest)],['Не оплачено',g(m=>m.pay==='none').length,sum(g(m=>m.pay==='none'),x=>x.m.pen)],['Иски направлены в суд',g(m=>m.filed).length,sum(g(m=>m.filed),x=>x.m.claimAmount)],['Госпошлина','',sum(g(m=>m.filed),x=>x.m.fee)],['На рассмотрении в суде',g(m=>m.result==='pending').length,sum(g(m=>m.result==='pending'),x=>x.m.claimAmount)],['Удовлетворено полностью',g(m=>m.result==='satisfied_full').length,sum(g(m=>m.result==='satisfied_full'),x=>x.m.awarded)],['Удовлетворено частично',g(m=>m.result==='satisfied_partial').length,sum(g(m=>m.result==='satisfied_partial'),x=>x.m.awarded)],['Отказано',g(m=>m.result==='rejected').length,sum(g(m=>m.result==='rejected'),x=>x.m.claimAmount)],['Иск отозван',g(m=>m.result==='withdrawn').length,sum(g(m=>m.result==='withdrawn'),x=>x.m.claimAmount)],['Взыскано по решениям суда',g(m=>m.collected>0).length,sum(M,x=>x.m.collected)],['Не взыскано — у ЧСИ',g(m=>m.sat&&m.enfRest>0).length,sum(M,x=>x.m.enfRest)],['Истёк срок оплаты, иск не подан',g(m=>m.overdue).length,sum(g(m=>m.overdue),x=>x.m.rest)],['Приближается исковая давность',g(m=>m.limSoon).length,'']];
+ const tot=sum(M,x=>x.m.pen);k.splice(5,0,['Процент оплаты по сумме, %','',tot?r2(sum(M,x=>x.m.paid)/tot*100):0]);
+ const R=empRows(M);
+ xlsxExport([{name:'KPI',header:['Показатель','Количество, шт.','Сумма, ₸'],rows:k},{name:'По сотрудникам',header:['Исполнитель','Должность','Претензий, шт.','Сумма, ₸','Оплачено, ₸','Не оплачено, ₸','% оплаты','Исков, шт.','Удовлетворено, шт.','Не удовлетворено, шт.','Взыскано по решениям, ₸','У ЧСИ, ₸'],rows:[...R.map(r=>[r.e.name,r.e.position,r.n,r2(r.pen),r2(r.paid),r2(r.rest),r.pen?r2(r.paid/r.pen*100):0,r.filed,r.sat,r.rej,r2(r.coll),r2(r.atB)]),['Итого','',sum(R,r=>r.n),r2(sum(R,r=>r.pen)),r2(sum(R,r=>r.paid)),r2(sum(R,r=>r.rest)),'',sum(R,r=>r.filed),sum(R,r=>r.sat),sum(R,r=>r.rej),r2(sum(R,r=>r.coll)),r2(sum(R,r=>r.atB))]]}],`Сводный_отчёт_${periodLabel(L)}.xlsx`);
+}
+function exportJournal(){
+ if(UI.j.sub==='notif'){const N=notifList();xlsxExport([{name:'Журнал уведомлений',header:['Время','Получатель','Канал','Событие','№ претензии','Статус','Текст'],rows:N.map(n=>[fmtDT(n.ts),empName(n.emp),CHANNELS[n.channel],EVENTS[n.event]?EVENTS[n.event].t:n.event,n.reg,n.status,n.text])}],`Журнал_уведомлений_${fmtD(TODAY())}.xlsx`);return;}
+ const A=journalList();
+ xlsxExport([{name:'Журнал изменений',header:['Дата и время','Сотрудник','Логин AD','Действие','№ претензии','Поле','Было','Стало','Комментарий'],rows:A.map(a=>[fmtDT(a.ts),a.actorName,a.login,ACTIONS[a.action]||a.action,a.reg,a.field,a.old,a.new,a.note])}],`Журнал_изменений_${UI.j.from?fmtD(UI.j.from):'начало'}-${UI.j.to?fmtD(UI.j.to):fmtD(TODAY())}.xlsx`);
+}
+function calcRowsForExport(){
+ const c=CARD.c,R=computeCalc(c.calc,c.contractAmount),rows=[];
+ R.lines.forEach((r,i)=>{const l=c.calc.lines[i];r.rows.forEach(x=>rows.push([i+1,+l.principal||0,METHODS[l.method],fmtD(x.from),fmtD(x.to),x.base,x.days??'',x.rate,x.amount]));rows.push([i+1,'','Итого по строке'+(r.capped?` (срезано до лимита ${fmtN(r.cap)})`:''),'','','','','',r.total]);});
+ rows.push(['','','ИТОГО ПЕНЯ','','','','','',R.total]);return{R,rows};
+}
+function calcXlsx(){const c=CARD.c;if(!c.calc||!c.calc.lines.length){toast('Нет строк расчёта',true);return;}const{rows}=calcRowsForExport();xlsxExport([{name:'Расчёт пени',header:['Строка','Сумма обязательства, ₸','Метод','Период с','Период по','База, ₸','Дней','Ставка','Пеня, ₸'],rows}],`Расчёт_пени_${c.reg}_${c.calc.asOf?fmtD(c.calc.asOf):fmtD(TODAY())}.xlsx`);}
+function calcPdf(){
+ const c=CARD.c;if(!c.calc||!c.calc.lines.length){toast('Нет строк расчёта',true);return;}
+ const R=computeCalc(c.calc,c.contractAmount);
+ const w=window.open('','_blank');if(!w){toast('Разрешите всплывающие окна для печати',true);return;}
+ w.document.write(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Расчёт пени ${esc(c.reg)}</title><style>body{font:13px Arial,sans-serif;margin:30px;color:#000}h1{font-size:17px}table{border-collapse:collapse;width:100%;margin:8px 0 16px}td,th{border:1px solid #999;padding:5px 7px}th{background:#eee}.n{text-align:right}p{margin:3px 0}</style></head><body>
+ <h1>Расчёт пени по претензии № ${esc(c.reg)} от ${fmtD(c.date)}</h1>
+ <p>Контрагент: <b>${esc(c.cpName)}</b>, БИН ${esc(c.bin)}</p><p>Договор № ${esc(c.contractNo)}${c.contractDate?' от '+fmtD(c.contractDate):''}${c.contractAmount?', сумма '+fmtM(c.contractAmount):''}</p>
+ ${c.calc.asOf?`<p>Расчёт на дату: <b>${fmtD(c.calc.asOf)}</b></p>`:''}
+ ${R.lines.map((r,i)=>{const l=c.calc.lines[i];return `<p><b>Обязательство ${i+1}:</b> ${fmtM(l.principal)}, срок исполнения ${fmtD(l.dueDate)}, метод: ${esc(METHODS[l.method])}</p><table><tr><th>Период с</th><th>по</th><th>База, ₸</th><th>Дней</th><th>Ставка</th><th>Пеня, ₸</th></tr>${r.rows.map(x=>`<tr><td>${fmtD(x.from)}</td><td>${fmtD(x.to)}</td><td class="n">${fmtN(x.base)}</td><td class="n">${x.days??'—'}</td><td>${esc(x.rate)}</td><td class="n">${fmtN(x.amount)}</td></tr>`).join('')}<tr><td colspan="5"><b>Итого${r.capped?` (ограничено лимитом ${fmtN(r.cap)} ₸; начислено ${fmtN(r.raw)} ₸)`:''}</b></td><td class="n"><b>${fmtN(r.total)}</b></td></tr></table>`;}).join('')}
+ <p style="font-size:15px">Итого пеня: <b>${fmtM(R.total)}</b></p><p style="margin-top:30px">Исполнитель: ${esc(empName(c.emp))} ____________________ &nbsp; Дата: ${fmtD(TODAY())}</p>
+ <script>setTimeout(()=>print(),300)<\/script></body></html>`);w.document.close();
+}
+
+/* =================== Действия =================== */
+const ACT={
+ login(){const id=$('#login-emp').value;setSession({empId:id,loginAt:Date.now(),last:Date.now()});refreshMe();tx(()=>audit('login',{note:'Вход через корпоративную учётную запись (демо)'}));runNotifications();render();toast('Добро пожаловать, '+ME.name);openFromHash();},
+ logout(){tx(()=>audit('logout',{}));setSession(null);ME=null;closeModal();UI.bell=false;render();},
+ tab(el){UI.tab=el.dataset.t;UI.bell=false;render();},
+ quick(el){const q=el.dataset.q,t=TODAY(),[y,m]=t.split('-').map(Number);UI.quick=q;
+  if(q==='month'){UI.f.from=`${y}-${pad(m)}-01`;UI.f.to=lastDay(y,m);}
+  if(q==='quarter'){const s=Math.floor((m-1)/3)*3+1;UI.f.from=`${y}-${pad(s)}-01`;UI.f.to=lastDay(y,s+2);}
+  if(q==='year'){UI.f.from=`${y}-01-01`;UI.f.to=`${y}-12-31`;}
+  if(q==='all'){UI.f.from='';UI.f.to='';}
+  UI.page=1;render();},
+ resetF(){UI.f={from:'',to:'',emp:'',status:'',pay:'',stage:'',result:'',enf:'',q:''};UI.quick='all';UI.page=1;render();},
+ empFilter(el){UI.f.emp=el.dataset.id;UI.tab='registry';UI.page=1;render();},
+ sort(el){const k=el.dataset.k;UI.sort=UI.sort.k===k?{k,d:-UI.sort.d}:{k,d:1};renderContent();},
+ page(el){UI.page=+el.dataset.p;renderContent();},
+ newClaim(){newClaim();},
+ openClaim(el){openClaim(el.dataset.id);},
+ closeCard(){if(CARD&&!CARD.ro&&JSON.stringify(CARD.c)!==JSON.stringify(CARD.orig)&&!confirm('Закрыть без сохранения изменений?'))return;closeModal();},
+ closeModal(){closeModal();},
+ ctab(el){CARD.tab=el.dataset.t;renderCardBody();},
+ saveCard(){saveCard();},
+ claimDelete(){const c=CARD.c;if(!confirm(`Удалить претензию ${c.reg}? Её можно будет восстановить.`))return;tx(db=>{const x=db.claims.find(y=>y.id===c.id);x.deleted=true;x.updatedAt=nowISO();x.updatedBy=ME.id;x.version++;audit('delete',{claimId:x.id,reg:x.reg,note:'Претензия удалена (мягкое удаление)'});});closeModal();renderContent();toast('Претензия удалена');},
+ restore(el){const id=el.dataset.id;tx(db=>{const x=db.claims.find(y=>y.id===id);x.deleted=false;x.updatedAt=nowISO();x.updatedBy=ME.id;x.version++;audit('restore',{claimId:x.id,reg:x.reg,note:'Претензия восстановлена'});});closeModal();renderContent();toast('Претензия восстановлена');},
+ payAdd(el){const p=el.dataset.p;getP(CARD.c,p).push({id:uid(),date:TODAY(),amount:null,doc:'',note:'',source:'вручную'});renderCardBody();},
+ payDel(el){const arr=getP(CARD.c,el.dataset.p);arr.splice(+el.dataset.i,1);renderCardBody();},
+ calcAddLine(){if(!CARD.c.calc)CARD.c.calc={lines:[],asOf:'',total:0};CARD.c.calc.lines.push(defaultLine());renderCardBody();},
+ calcDelLine(el){CARD.c.calc.lines.splice(+el.dataset.i,1);renderCardBody();},
+ calcAddPartial(el){const l=CARD.c.calc.lines[+el.dataset.i];(l.partials=l.partials||[]).push({id:uid(),date:'',amount:null});renderCardBody();},
+ calcDelPartial(el){CARD.c.calc.lines[+el.dataset.i].partials.splice(+el.dataset.j,1);renderCardBody();},
+ calcAsOfToday(){CARD.c.calc.asOf=TODAY();renderCardBody();},
+ calcAsOfSuit(){CARD.c.calc.asOf=CARD.c.court.filedDate;renderCardBody();},
+ calcAsOfClear(){CARD.c.calc.asOf='';renderCardBody();},
+ calcApply(){const c=CARD.c,R=computeCalc(c.calc,c.contractAmount);c.penalty=R.total;c.calc.total=R.total;c.penaltyManual=false;c.manualReason='';renderCardBody();toast('Сумма пени перенесена в претензию: '+fmtM(R.total));},
+ calcXlsx(){calcXlsx();},calcPdf(){calcPdf();},
+ courtRest(){CARD.c.court.amount=r2(Math.max(0,met(CARD.c).rest));renderCardBody();},
+ courtRecalc(){const c=CARD.c;if(!c.court.filedDate){toast('Укажите дату подачи иска',true);return;}if(!c.calc||!c.calc.lines.length){toast('Нет расчёта пени — заполните вкладку «Расчёт пени»',true);return;}const R=computeCalc({...c.calc,asOf:c.court.filedDate},c.contractAmount);c.court.amount=r2(Math.max(0,R.total-met(c).paid));renderCardBody();toast(`Пеня на ${fmtD(c.court.filedDate)}: ${fmtM(R.total)}; сумма иска (за вычетом оплат): ${fmtM(c.court.amount)}`);},
+ async fileUpload(){
+  const inp=$('#file-inp'),type=$('#file-type').value;if(!inp.files.length){toast('Выберите файл',true);return;}
+  for(const f of inp.files){const ext=f.name.split('.').pop().toLowerCase();if(!FILE_EXT.includes(ext)){toast(`${f.name}: формат не поддерживается`,true);continue;}if(f.size>20*1024*1024){toast(`${f.name}: больше 20 МБ`,true);continue;}
+   const id=uid();try{await IDB.put(id,f);}catch(e){toast('Не удалось сохранить файл: '+e.message,true);continue;}
+   CARD.c.files.push({id,type,name:f.name,size:f.size,mime:f.type,by:ME.id,at:nowISO(),deleted:false,_new:true});}
+  renderCardBody();toast('Файл добавлен — сохраните претензию');
+ },
+ async fileView(el){const b=await IDB.get(el.dataset.id).catch(()=>null);if(!b){toast('Файл не найден в хранилище браузера',true);return;}window.open(URL.createObjectURL(b),'_blank');},
+ async fileDl(el){const f=CARD.c.files.find(x=>x.id===el.dataset.id);const b=await IDB.get(el.dataset.id).catch(()=>null);if(!b){toast('Файл не найден в хранилище браузера',true);return;}const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f.name;a.click();},
+ fileDel(el){const f=CARD.c.files.find(x=>x.id===el.dataset.id);if(!confirm(`Удалить файл «${f.name}»?`))return;f.deleted=true;f._del=true;renderCardBody();},
+ jsub(el){UI.j.sub=el.dataset.v;renderContent();},
+ exportRegistry(){exportRegistry();},exportSummary(){exportSummary();},exportJournal(){exportJournal();},
+ ssub(el){UI.s=el.dataset.v;renderContent();},
+ empAdd(){tx(db=>{const n=db.employees.length+1;db.employees.push({id:uid(),name:'Сотрудник '+n,position:'Специалист',login:'user'+n,email:`user${n}@company.local`,role:'executor',active:true,messengerId:''});audit('settings',{field:'Сотрудники',new:'добавлен Сотрудник '+n});});renderContent();},
+ cpAdd(){tx(db=>{db.counterparties.push({id:uid(),name:'Новый контрагент',bin:'000000000000'});audit('settings',{field:'Контрагенты',new:'добавлен контрагент'});});renderContent();},
+ ctAdd(){if(!DB.counterparties.length){toast('Сначала добавьте контрагента',true);return;}tx(db=>{db.contracts.push({id:uid(),cpId:db.counterparties[0].id,number:'Новый договор',date:TODAY(),amount:null,method:db.settings.defaultMethod,rate:db.settings.defaultRate,capPct:db.settings.defaultCapPct});audit('settings',{field:'Договоры',new:'добавлен договор'});});renderContent();},
+ rateAdd(){tx(db=>{db.baseRates.push({id:uid(),from:TODAY(),rate:0});audit('settings',{field:'Ставки НБ РК',new:'добавлена ставка с '+fmtD(TODAY())});});renderContent();},
+ rateDel(el){const r=DB.baseRates.find(x=>x.id===el.dataset.id);if(!confirm(`Удалить ставку с ${fmtD(r.from)}?`))return;tx(db=>{db.baseRates=db.baseRates.filter(x=>x.id!==el.dataset.id);audit('settings',{field:'Ставки НБ РК',old:`${fmtD(r.from)}: ${r.rate}%`,new:'удалена'});});renderContent();},
+ runNotif(){const n=runNotifications();updateBell();toast(n?`Сформировано событий: ${n}`:'Новых событий нет');},
+ testConn(el){toast(`Демо-режим: проверка подключения к ${el.dataset.v} не выполняется. Параметры сохранены.`);},
+ backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}));a.download=`Реестр_претензий_backup_${fmtD(TODAY())}.json`;a.click();},
+ resetDemo(){if(!confirm('Заменить все данные демонстрационными? Текущие данные будут потеряны.'))return;const me=ME&&ME.id;DB=seed();writeDB();IDB.clear().catch(()=>{});runNotifications();if(me&&!DB.employees.find(e=>e.id===me))setSession(null);render();toast('Загружены демо-данные');},
+ clearAll(){if(!confirm('Удалить все претензии, журнал и уведомления? Сотрудники и справочники сохранятся.'))return;tx(db=>{db.claims=[];db.audit=[];db.notifications=[];db.notifKeys=[];db.imports=[];audit('settings',{field:'Данные',new:'реестр очищен'});});IDB.clear().catch(()=>{});render();},
+ profile(){PROFILE=null;showProfile();},
+ msgCode(){PROFILE.code=String(Math.floor(100000+Math.random()*900000));showProfile();},
+ msgConfirm(){tx(db=>{const e=db.employees.find(x=>x.id===ME.id);e.messengerId='@'+e.login;audit('settings',{field:'Привязка мессенджера',new:e.messengerId});});refreshMe();PROFILE.code=null;showProfile();toast('Мессенджер привязан');},
+ msgUnbind(){tx(db=>{const e=db.employees.find(x=>x.id===ME.id);audit('settings',{field:'Привязка мессенджера',old:e.messengerId,new:''});e.messengerId='';});refreshMe();showProfile();},
+ profileSave(){const p={};document.querySelectorAll('[data-pref]').forEach(el=>{const[k,ch]=el.dataset.pref.split('.');p[k]=p[k]||{};p[k][ch]=el.checked;});tx(db=>{db.prefs[ME.id]=p;audit('settings',{field:'Профиль: настройки уведомлений',new:'обновлены'});});closeModal();toast('Настройки уведомлений сохранены');},
+ bell(){UI.bell=!UI.bell;updateBell();},
+ bellReadAll(){tx(db=>db.notifications.forEach(n=>{if(n.emp===ME.id)n.read=true;}));updateBell();},
+ bellOpen(el){let cid=null;tx(db=>{const n=db.notifications.find(x=>x.id===el.dataset.id);if(n){n.read=true;cid=n.claimId;}});UI.bell=false;updateBell();if(cid)openClaim(cid);},
+ impTemplate(){xlsxExport([{name:'Претензии',header:IMP_FIELDS.map(f=>f[1]),rows:[['П-2025-0001','15.03.2025','Сотрудник 4','ТОО «Пример»','123456789012','12-П/2024','10.01.2024',50000000,'01.02.2025','28.02.2025','Просрочка поставки',1400000,'25.03.2025','', 'нет','','','','','','','','','','','','','','','']]},{name:'Оплаты',header:PAY_HDR,rows:[['П-2025-0001','01.04.2025',500000,'ПП № 123','']]},{name:'Поступления по решению',header:PAY_HDR,rows:[]}],'Шаблон_импорта_претензий.xlsx');},
+ impCancel(){IMP=null;renderContent();},
+ impCheck(){impCheck();},
+ impBack(){IMP.stage='map';renderContent();},
+ impDupAll(el){IMP.preview.forEach(p=>{if(p.dup&&!p.errors.length)p.action=el.dataset.v;});renderContent();},
+ impCommit(){const ok=IMP.preview.filter(p=>!p.errors.length&&!(p.dup&&p.action==='skip')).length;if(!confirm(`Загрузить ${ok} строк?`))return;impCommit();},
+ impErrors(){const bad=IMP.preview.filter(p=>p.errors.length);xlsxExport([{name:'Ошибки',header:['Строка файла',...IMP.headers,'Ошибка'],rows:bad.map(p=>[p.row,...IMP.headers.map((h,i)=>fmtCell(p.raw[i])),p.errors.join('; ')])}],`Ошибки_импорта_${fmtD(TODAY())}.xlsx`);},
+ impRollback(el){const h=DB.imports.find(x=>x.id===el.dataset.id);if(!confirm(`Отменить импорт «${h.fileName}»? Созданные им претензии (${h.created}) будут помечены удалёнными.`))return;let n=0;tx(db=>{const x=db.imports.find(y=>y.id===h.id);db.claims.forEach(c=>{if(c.importId===h.id&&!c.deleted){c.deleted=true;c.updatedAt=nowISO();c.updatedBy=ME.id;c.version++;n++;}});x.rolledBack=true;audit('import_rollback',{field:'Импорт',note:`Отмена импорта «${h.fileName}»: удалено ${n} записей`});});renderContent();toast(`Импорт отменён, удалено записей: ${n}`);}
+};
+
+/* =================== События =================== */
+document.addEventListener('click',e=>{
+ const el=e.target.closest('[data-a]');
+ if(UI.bell&&!e.target.closest('.bell-wrap')){UI.bell=false;updateBell();}
+ if(!el||el.disabled)return;const f=ACT[el.dataset.a];if(f)f(el,e);
+});
+document.addEventListener('input',e=>{
+ const el=e.target;
+ if(el.closest&&el.closest('#card-body')&&el.dataset.b){onCardField(e);return;}
+ if(el.dataset.f==='q'){UI.f.q=el.value;UI.page=1;renderContent();return;}
+ if(el.dataset.j==='q'){UI.j.q=el.value;const pos=el.selectionStart;renderContent();const n=document.querySelector('[data-j="q"]');if(n){n.focus();n.setSelectionRange(pos,pos);}return;}
+});
+document.addEventListener('change',e=>{
+ const el=e.target;
+ if(el.closest&&el.closest('#card-body')&&el.dataset.b){onCardField(e);return;}
+ if(el.dataset.f&&el.dataset.f!=='q'){UI.f[el.dataset.f]=el.value;if(el.dataset.f==='from'||el.dataset.f==='to')UI.quick='';UI.page=1;render();return;}
+ if(el.dataset.j&&el.dataset.j!=='q'){UI.j[el.dataset.j]=el.value;renderContent();return;}
+ if(el.dataset.ui==='size'){UI.size=+el.value;UI.page=1;renderContent();return;}
+ if(el.dataset.ui==='showDeleted'){UI.showDeleted=el.checked;UI.page=1;renderContent();return;}
+ if(el.dataset.s||el.dataset.dir){onSettingChange(el);return;}
+ if(el.dataset.map){IMP.mapping[el.dataset.map]=el.value===''?null:+el.value;renderContent();return;}
+ if(el.dataset.imp==='sheet'){IMP.sheet=el.value;loadImpSheet();renderContent();return;}
+ if(el.dataset.dup!=null){IMP.preview[+el.dataset.dup].action=el.value;return;}
+ if(el.id==='imp-file'&&el.files[0]){
+  if(!window.XLSX){toast('Библиотека Excel не загрузилась (нужен интернет)',true);return;}
+  const file=el.files[0];file.arrayBuffer().then(buf=>{
+   const wb=XLSX.read(buf,{type:'array',cellDates:true});
+   const main=wb.SheetNames.find(n=>/претенз/i.test(n))||wb.SheetNames[0];
+   IMP={fileName:file.name,wb,sheet:main,stage:'map',paySheet:wb.SheetNames.find(n=>/оплат/i.test(n))||null,enfSheet:wb.SheetNames.find(n=>/поступ/i.test(n))||null};
+   loadImpSheet();renderContent();
+  }).catch(err=>toast('Не удалось прочитать файл: '+err.message,true));return;
+ }
+ if(el.id==='restore-file'&&el.files[0]){
+  el.files[0].text().then(t=>{const d=JSON.parse(t);if(!d.claims||!d.employees)throw new Error('неверный формат');if(!confirm('Заменить текущие данные данными из резервной копии?'))return;DB=migrate(d);writeDB();tx(()=>audit('settings',{field:'Данные',new:'восстановлено из резервной копии'}));render();toast('Данные восстановлены');}).catch(err=>toast('Ошибка восстановления: '+err.message,true));
+ }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(UI.bell){UI.bell=false;updateBell();}else if(PROFILE!==null||($('#modal-root').innerHTML&&!CARD))closeModal();}});
+['mousemove','keydown','click'].forEach(ev=>document.addEventListener(ev,()=>{const s=getSession();if(s&&Date.now()-s.last>30000){s.last=Date.now();setSession(s);}},{passive:true}));
+setInterval(()=>{const s=getSession();if(!s||!ME)return;const now=Date.now();if(now-s.last>30*60000||now-s.loginAt>8*3600000){tx(()=>audit('logout',{note:'Сессия завершена по таймауту'}));setSession(null);ME=null;closeModal();render();toast('Сессия завершена по таймауту. Войдите снова.',true);}},60000);
+setInterval(()=>{if(ME){if(runNotifications())updateBell();}},10*60000);
+window.addEventListener('storage',e=>{if(e.key===LS){DB=readDB()||DB;if(!CARD&&ME){if(UI.tab==='settings'||UI.tab==='import')return;renderContent();}updateBell();}});
+function openFromHash(){const m=/#claim=([\w-]+)/.exec(location.hash);if(m&&ME)openClaim(m[1]);}
+
+/* =================== Запуск =================== */
+DB=readDB();
+if(!DB){DB=seed();writeDB();}
+runNotifications();
+render();
+openFromHash();
+</script>
+</body>
+</html>
